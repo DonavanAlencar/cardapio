@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Backend (Node)",
+        "type": "pwa-node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": [ "run", "dev" ],         // seu script nodemon
+        "port": 9229,                            // porta padrão do Node Inspector
+        "console": "integratedTerminal",
+        "envFile": "${workspaceFolder}/.env",    // carrega suas variáveis
+        "skipFiles": ["<node_internals>/**"]
+      }
+    ]
+  }
+  

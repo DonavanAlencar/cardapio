@@ -1,0 +1,26 @@
+# Node.js dependencies
+# **/node_modules/
+
+# Build output (se usar)
+frontend/build
+# ou dist, caso use outro bundler
+# **/dist/
+
+# Arquivos de configuração de ambiente
+# backend/.env
+# frontend/.env
+
+# VSCode config
+# **/.vscode/
+
+# Caches e arquivos temporários
+**/.cache/
+**/.eslintcache
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Sistema operacional
+.DS_Store

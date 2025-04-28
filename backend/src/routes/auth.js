@@ -1,32 +1,85 @@
+// backend/src/routes/auth.js
 const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const pool = require('../config/db');
+const bcrypt  = require('bcrypt');
+const jwt     = require('jsonwebtoken');
+const pool    = require('../config/db');
 require('dotenv').config();
 
 const router = express.Router();
 
+// 1) Verifica se a secret do JWT está definida
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: variável JWT_SECRET não definida.');
+  process.exit(1);
+}
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+
+  // 2) Validação de entrada
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email e senha são obrigatórios.' });
+  }
+
   try {
+    // 3) Busca o usuário na tabela `users`
     const [rows] = await pool.query(
-      'SELECT id, nome, role, senha_hash FROM usuarios WHERE email = ?',
+      `SELECT 
+         a.id,
+         a.username,
+         a.email,
+         a.branch_id,
+         a.password_hash,
+		     c.name role
+            FROM users a
+		        INNER JOIN user_roles b ON b.user_id = a.id
+		        INNER JOIN roles c ON c.id = b.role_id
+       WHERE email = ?`,
       [email]
     );
-    if (!rows.length) return res.status(401).json({ message: 'Usuário não encontrado' });
-    const user = rows[0];
-    if (!bcrypt.compareSync(password, user.senha_hash)) {
-      return res.status(401).json({ message: 'Senha incorreta' });
+
+    // console.log(rows);
+
+    if (rows.length === 0) {
+      return res.status(401).json({ message: 'Usuário não encontrado.' });
     }
+
+    const user = rows[0];
+
+    // 4) Compara a senha com bcrypt (de forma assíncrona)
+    const senhaValida = await bcrypt.compare(password, user.password_hash);
+    if (!senhaValida) {
+      return res.status(401).json({ message: 'Senha incorreta.' });
+    }
+
+    // 5) Gera o token JWT incluindo os dados que quiser expor no payload
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      {
+        id:        user.id,
+        username:  user.username,
+        email:     user.email,
+        branch_id: user.branch_id,
+        role: user.role
+      },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
-    res.json({ token, user: { id: user.id, nome: user.nome, role: user.role } });
+
+    // 6) Retorna o token e os dados do usuário (sem expor o hash)
+    return res.json({
+      token,
+      user: {
+        id:        user.id,
+        username:  user.username,
+        email:     user.email,
+        branch_id: user.branch_id,
+        role: user.role
+      }
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro no servidor' });
+    console.error('Erro no /login:', err);
+    return res.status(500).json({ message: 'Erro interno do servidor.' });
   }
 });
 

@@ -11,6 +11,7 @@ export default function Login() {
     e.preventDefault();
     try {
       const res = await api.post('/auth/login', { email, password: senha });
+      console.log(res.data.user.role);
       localStorage.setItem('token', res.data.token);
       api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       if (res.data.user.role === 'admin') navigate('/admin/garcons');
