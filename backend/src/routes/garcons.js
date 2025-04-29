@@ -1,23 +1,22 @@
-// backend/src/routes/garcons.js
 const express = require('express');
 const bcrypt  = require('bcrypt');
 const pool    = require('../config/db');
 const auth    = require('../middleware/authMiddleware');
 
 const router = express.Router();
-router.use(auth('admin')); // apenas admins podem usar essas rotas
+router.use(auth('admin')); // apenas admins podem usar
 
-// Helper para obter o role_id de ‘waiter’
+// Busca o ID do role "waiter"
 async function getWaiterRoleId() {
   const [[role]] = await pool.query(
     'SELECT id FROM roles WHERE name = ? LIMIT 1',
     ['waiter']
   );
-  if (!role) throw new Error('Role "waiter" não existe no banco');
+  if (!role) throw new Error('Role "waiter" não existe');
   return role.id;
 }
 
-// Listar garçons (usuários com role = waiter)
+// Listar garçons
 router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -27,8 +26,8 @@ router.get('/', async (req, res) => {
          u.email,
          u.branch_id
        FROM users u
-       INNER JOIN user_roles ur ON ur.user_id = u.id
-       INNER JOIN roles r       ON r.id       = ur.role_id
+       JOIN user_roles ur ON ur.user_id = u.id
+       JOIN roles r       ON r.id       = ur.role_id
        WHERE r.name = ?`,
       ['waiter']
     );
@@ -43,14 +42,15 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   const { username, email, password, branch_id } = req.body;
   if (!username || !email || !password || !branch_id) {
-    return res.status(400).json({ message: 'Campos obrigatórios: username, email, password, branch_id' });
+    return res
+      .status(400)
+      .json({ message: 'Campos obrigatórios: username, email, password, branch_id' });
   }
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    // 1) Insere o usuário
     const hash = await bcrypt.hash(password, 10);
     const [userResult] = await conn.query(
       `INSERT INTO users (username, password_hash, email, branch_id)
@@ -59,11 +59,9 @@ router.post('/', async (req, res) => {
     );
     const userId = userResult.insertId;
 
-    // 2) Associa o role 'waiter'
     const waiterRoleId = await getWaiterRoleId();
     await conn.query(
-      `INSERT INTO user_roles (user_id, role_id)
-       VALUES (?, ?)`,
+      `INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`,
       [userId, waiterRoleId]
     );
 
@@ -83,26 +81,29 @@ router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { username, email, branch_id, password } = req.body;
   if (!username || !email || !branch_id) {
-    return res.status(400).json({ message: 'Campos obrigatórios: username, email, branch_id' });
+    return res
+      .status(400)
+      .json({ message: 'Campos obrigatórios: username, email, branch_id' });
   }
 
   try {
-    // Se forneceu nova senha, gera o hash; senão mantém existente
-    let passwordSql = '';
-    let params = [username, email, branch_id];
+    // monta a parte da senha só se veio no body
+    let setSenha = '',
+        params   = [username, email, branch_id];
+
     if (password) {
       const hash = await bcrypt.hash(password, 10);
-      passwordSql = ', password_hash = ?';
+      setSenha = ', password_hash = ?';
       params.push(hash);
     }
     params.push(id);
 
     await pool.query(
       `UPDATE users
-         SET username = ?,
-             email    = ?,
-             branch_id= ?
-             ${passwordSql}
+         SET username = ?
+           , email    = ?
+           , branch_id= ?
+           ${setSenha}
        WHERE id = ?`,
       params
     );
@@ -120,18 +121,8 @@ router.delete('/:id', async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-
-    // 1) Remove associação de role
-    await conn.query(
-      'DELETE FROM user_roles WHERE user_id = ?',
-      [id]
-    );
-    // 2) Remove usuário
-    await conn.query(
-      'DELETE FROM users WHERE id = ?',
-      [id]
-    );
-
+    await conn.query('DELETE FROM user_roles WHERE user_id = ?', [id]);
+    await conn.query('DELETE FROM users      WHERE id       = ?', [id]);
     await conn.commit();
     res.sendStatus(204);
   } catch (err) {

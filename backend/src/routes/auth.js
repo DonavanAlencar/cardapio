@@ -6,6 +6,7 @@ const pool    = require('../config/db');
 require('dotenv').config();
 
 const router = express.Router();
+const debugAuth = require('debug')('app:auth');
 
 // 1) Verifica se a secret do JWT está definida
 if (!process.env.JWT_SECRET) {
@@ -79,6 +80,7 @@ router.post('/login', async (req, res) => {
 
   } catch (err) {
     console.error('Erro no /login:', err);
+    debugAuth(err);
     return res.status(500).json({ message: 'Erro interno do servidor.' });
   }
 });
