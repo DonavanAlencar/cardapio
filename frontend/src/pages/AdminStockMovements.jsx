@@ -110,8 +110,8 @@ const AdminStockMovements = () => {
       </div>
 
       <h2 className="text-xl font-semibold mb-2">Estoque Atual dos Ingredientes</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200">
+      <div className="overflow-x-auto w-full">
+        <table className="min-w-full bg-white border border-gray-200 text-xs sm:text-sm">
           <thead>
             <tr>
               <th className="py-2 px-4 border-b">ID</th>

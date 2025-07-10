@@ -15,20 +15,18 @@ import {
   ArrowBack,
   ExpandLess,
   ExpandMore,
+  Menu as MenuIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "@mui/icons-material";
 import jwt_decode from "jwt-decode";
 import "./Sidebar.css";
 
 const fullMenu = [
-  // Menu público
   { label: "Cardápio", icon: <RestaurantMenu />, path: "/cardapio", roles: ["admin", "waiter"] },
-
-  // Menus do garçom
   { label: "Mesas", icon: <Store />, path: "/garcom/mesas", roles: ["waiter"] },
   { label: "Pedidos", icon: <ShoppingCart />, path: "/garcom/pedido", roles: ["waiter"] },
   { label: "Comissão", icon: <Assessment />, path: "/garcom/comissao", roles: ["waiter"] },
-
-  // Menus do admin agrupados
   {
     label: "Administração",
     icon: <ListAlt />,
@@ -60,10 +58,10 @@ function getUserRole() {
 
 export default function Sidebar() {
   const [open, setOpen] = useState({});
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const role = useMemo(getUserRole, []);
 
-  // Filtra o menu conforme o papel do usuário
   const menu = useMemo(() =>
     fullMenu.filter(item => {
       if (item.children) {
@@ -87,9 +85,12 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-logo">
-        <span>Cardápio</span>
+    <div className={`sidebar${collapsed ? ' sidebar-collapsed' : ''}`}> 
+      <div className="sidebar-logo flex items-center justify-between pr-2">
+        <span style={{ transition: 'opacity 0.2s', opacity: collapsed ? 0 : 1 }}>{collapsed ? '' : 'Cardápio'}</span>
+        <button className="sidebar-collapse-btn" onClick={() => setCollapsed(!collapsed)}>
+          {collapsed ? <ChevronRight /> : <ChevronLeft />}
+        </button>
       </div>
       <ul className="sidebar-menu">
         {menu.map((item) =>
@@ -100,10 +101,10 @@ export default function Sidebar() {
                 onClick={() => handleToggle(item.label)}
               >
                 {item.icon}
-                <span>{item.label}</span>
-                {open[item.label] ? <ExpandLess /> : <ExpandMore />}
+                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && (open[item.label] ? <ExpandLess /> : <ExpandMore />)}
               </div>
-              {open[item.label] && (
+              {open[item.label] && !collapsed && (
                 <ul className="sidebar-submenu">
                   {item.children.map((sub) => (
                     <li key={sub.label}>
@@ -126,16 +127,16 @@ export default function Sidebar() {
                 className={`sidebar-item ${location.pathname === item.path ? "active" : ""}`}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             </li>
           )
         )}
       </ul>
       <div className="sidebar-footer">
-        <button className="sidebar-lang">PT</button>
+        {!collapsed && <button className="sidebar-lang">PT</button>}
         <button className="sidebar-logout">
-          <ArrowBack /> Sair
+          <ArrowBack /> {!collapsed && 'Sair'}
         </button>
       </div>
     </div>

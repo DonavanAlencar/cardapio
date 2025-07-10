@@ -5,12 +5,28 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: width 0.2s;
+}
+.sidebar-collapsed {
+  width: 64px;
 }
 .sidebar-logo {
   font-size: 2rem;
   font-weight: bold;
   color: #7c3aed;
   padding: 24px 16px 16px 24px;
+  min-height: 64px;
+}
+.sidebar-collapse-btn {
+  background: none;
+  border: none;
+  color: #7c3aed;
+  font-size: 1.5rem;
+  cursor: pointer;
+  outline: none;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
 }
 .sidebar-menu {
   list-style: none;
@@ -26,6 +42,13 @@
   color: #333;
   transition: background 0.2s;
   gap: 12px;
+  white-space: nowrap;
+}
+.sidebar-collapsed .sidebar-item span {
+  display: none;
+}
+.sidebar-collapsed .sidebar-submenu {
+  display: none;
 }
 .sidebar-item.active, .sidebar-item:hover {
   background: #f3e8ff;
@@ -58,4 +81,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.sidebar-collapsed .sidebar-lang {
+  display: none;
+}
+.sidebar-collapsed .sidebar-footer {
+  justify-content: center;
 } 

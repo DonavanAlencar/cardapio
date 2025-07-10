@@ -136,39 +136,41 @@ export default function AdminGarcons() {
         </button>
       </form>
 
-      <table className="w-full bg-white shadow rounded">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2 text-left">Usuário</th>
-            <th className="p-2 text-left">Email</th>
-            <th className="p-2 text-left">Filial</th>
-            <th className="p-2 text-center">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {garcons.map(g => (
-            <tr key={g.id} className="border-b">
-              <td className="p-2">{g.username}</td>
-              <td className="p-2">{g.email}</td>
-              <td className="p-2">{g.branch_id}</td>
-              <td className="p-2 text-center space-x-2">
-                <button
-                  onClick={() => handleEdit(g)}
-                  className="text-blue-600 hover:underline"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => handleDelete(g.id)}
-                  className="text-red-600 hover:underline"
-                >
-                  🗑
-                </button>
-              </td>
+      <div className="overflow-x-auto w-full">
+        <table className="w-full bg-white shadow rounded text-xs sm:text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 text-left">Usuário</th>
+              <th className="p-2 text-left">Email</th>
+              <th className="p-2 text-left">Filial</th>
+              <th className="p-2 text-center">Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {garcons.map(g => (
+              <tr key={g.id} className="border-b">
+                <td className="p-2">{g.username}</td>
+                <td className="p-2">{g.email}</td>
+                <td className="p-2">{g.branch_id}</td>
+                <td className="p-2 text-center space-x-2">
+                  <button
+                    onClick={() => handleEdit(g)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={() => handleDelete(g.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    🗑
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
