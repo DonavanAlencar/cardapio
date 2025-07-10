@@ -4,15 +4,15 @@ import api from '../services/api';
 import debugLog from 'debug';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const [email, setEmail] = useState('admin@empresa.com');
+  const [senha, setSenha] = useState('admin123');
   const navigate = useNavigate();
   const logUI = debugLog('ui:App');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/login', { email, password: senha });
+      const res = await api.post('/api/auth/login', { email, password: senha });
       
       // Verifica se a resposta está correta antes de continuar
       if (res.data && res.data.token && res.data.user) {

@@ -273,7 +273,7 @@ const AdminProductModifiers = () => {
                 <td className="py-2 px-4 border-b">{modifier.tipo}</td>
                 <td className="py-2 px-4 border-b">{modifier.ingrediente_nome || 'N/A'}</td>
                 <td className="py-2 px-4 border-b text-center">{modifier.fator_consumo}</td>
-                <td className="py-2 px-4 border-b text-center">{modifier.ajuste_preco.toFixed(2)}</td>
+                <td className="py-2 px-4 border-b text-center">{typeof modifier.ajuste_preco === 'number' ? modifier.ajuste_preco.toFixed(2) : 'N/A'}</td>
                 <td className="py-2 px-4 border-b text-center">
                   <button
                     onClick={() => handleEditClick(modifier)}

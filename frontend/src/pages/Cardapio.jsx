@@ -56,7 +56,9 @@ export default function Cardapio() {
             <div className="p-4">
               <h2 className="text-xl font-semibold">{p.name}</h2>
               <p className="text-gray-700 mb-2">{p.description}</p>
-              <p className="text-green-600 font-bold">R$ {p.price ? p.price.toFixed(2) : 'N/A'}</p>
+              <p className="text-green-600 font-bold">
+                R$ {typeof p.price === 'number' ? p.price.toFixed(2) : 'N/A'}
+              </p>
             </div>
           </div>
         ))}
