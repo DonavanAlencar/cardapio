@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Assessment,
@@ -18,6 +18,9 @@ import {
   Menu as MenuIcon,
   ChevronLeft,
   ChevronRight,
+  AccountCircle,
+  Logout,
+  Edit,
 } from "@mui/icons-material";
 import jwt_decode from "jwt-decode";
 import "./Sidebar.css";
@@ -45,12 +48,12 @@ const fullMenu = [
   },
 ];
 
-function getUserRole() {
+function getUserInfo() {
   try {
     const token = localStorage.getItem("token");
     if (!token) return null;
     const user = jwt_decode(token);
-    return user.role;
+    return user;
   } catch {
     return null;
   }
@@ -59,8 +62,11 @@ function getUserRole() {
 export default function Sidebar() {
   const [open, setOpen] = useState({});
   const [collapsed, setCollapsed] = useState(false);
+  const [profileMenu, setProfileMenu] = useState(false);
   const location = useLocation();
-  const role = useMemo(getUserRole, []);
+  const navigate = useNavigate();
+  const user = useMemo(getUserInfo, []);
+  const role = user?.role;
 
   const menu = useMemo(() =>
     fullMenu.filter(item => {
@@ -84,8 +90,43 @@ export default function Sidebar() {
     setOpen((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   return (
     <div className={`sidebar${collapsed ? ' sidebar-collapsed' : ''}`}> 
+      <div className="sidebar-profile flex items-center gap-2 p-4 relative">
+        <div
+          className="sidebar-avatar cursor-pointer flex items-center gap-2"
+          onClick={() => setProfileMenu((v) => !v)}
+        >
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl font-bold text-white">
+              {user?.name ? user.name[0].toUpperCase() : <AccountCircle fontSize="large" />}
+            </div>
+          )}
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="font-semibold text-sm">{user?.name || 'Usuário'}</span>
+              <span className="text-xs text-gray-500">{user?.email || ''}</span>
+            </div>
+          )}
+        </div>
+        {profileMenu && !collapsed && (
+          <div className="sidebar-profile-menu absolute left-16 top-12 bg-white shadow-lg rounded z-50 min-w-[140px] border">
+            <button className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100" onClick={() => { setProfileMenu(false); navigate('/editar-perfil'); }}>
+              <Edit fontSize="small" /> Editar perfil
+            </button>
+            <button className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100" onClick={handleLogout}>
+              <Logout fontSize="small" /> Sair
+            </button>
+          </div>
+        )}
+      </div>
       <div className="sidebar-logo flex items-center justify-between pr-2">
         <span style={{ transition: 'opacity 0.2s', opacity: collapsed ? 0 : 1 }}>{collapsed ? '' : 'Cardápio'}</span>
         <button className="sidebar-collapse-btn" onClick={() => setCollapsed(!collapsed)}>

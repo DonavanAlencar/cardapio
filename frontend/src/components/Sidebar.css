@@ -87,4 +87,41 @@
 }
 .sidebar-collapsed .sidebar-footer {
   justify-content: center;
+}
+.sidebar-profile {
+  min-height: 64px;
+  position: relative;
+}
+.sidebar-avatar {
+  min-width: 40px;
+}
+.sidebar-profile-menu {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  min-width: 140px;
+  background: #fff;
+  border: 1px solid #eee;
+  z-index: 100;
+  animation: fadeIn 0.15s;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.sidebar-profile-menu button {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 16px;
+  color: #333;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 0;
+}
+.sidebar-profile-menu button:hover {
+  background: #f3e8ff;
 } 
