@@ -1,71 +1,249 @@
-// frontend/src/pages/AdminProdutos.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
-export default function AdminProdutos() {
-  const [produtos, setProdutos] = useState([]);
-  const [form, setForm] = useState({ nome:'', descricao:'', preco:0, categoria:'', imagem_url:'' });
-  const [editingId, setEditingId] = useState(null);
+const AdminProdutos = () => {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductDescription, setNewProductDescription] = useState('');
+  const [newProductSku, setNewProductSku] = useState('');
+  const [newProductStatus, setNewProductStatus] = useState('active');
+  const [newProductCategoryId, setNewProductCategoryId] = useState('');
+  const [editingProduct, setEditingProduct] = useState(null); // null ou o objeto do produto sendo editado
 
-  useEffect(() => { fetch(); }, []);
-  async function fetch() {
-    const res = await api.get('/produtos');
-    setProdutos(res.data);
-  }
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
 
-  function change(e) { setForm({...form,[e.target.name]:e.target.value}); }
-  async function submit(e) {
-    e.preventDefault();
-    if (editingId) await api.put(`/produtos/${editingId}`, form);
-    else await api.post('/produtos', form);
-    setForm({ nome:'', descricao:'', preco:0, categoria:'', imagem_url:'' });
-    setEditingId(null);
-    fetch();
-  }
-
-  function edit(p) {
-    setEditingId(p.id);
-    setForm({ nome:p.nome, descricao:p.descricao, preco:p.preco, categoria:p.categoria, imagem_url:p.imagem_url });
-  }
-
-  async function del(id) {
-    if (confirm('Remover produto?')) {
-      await api.delete(`/produtos/${id}`);
-      fetch();
+  const fetchProducts = async () => {
+    try {
+      const response = await api.get('/api/products');
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+      alert('Erro ao buscar produtos.');
     }
-  }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/api/product-categories');
+      setCategories(response.data);
+      if (response.data.length > 0) {
+        setNewProductCategoryId(response.data[0].id); // Define a primeira categoria como padrão
+      }
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+      alert('Erro ao buscar categorias.');
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!newProductName.trim() || !newProductCategoryId) {
+      alert('Nome do produto e categoria são obrigatórios.');
+      return;
+    }
+    try {
+      const response = await api.post('/api/products', {
+        name: newProductName,
+        description: newProductDescription,
+        sku: newProductSku,
+        status: newProductStatus,
+        category_id: newProductCategoryId,
+      });
+      setProducts([...products, { ...response.data, category_name: categories.find(cat => cat.id === response.data.category_id)?.name }]);
+      setNewProductName('');
+      setNewProductDescription('');
+      setNewProductSku('');
+      setNewProductStatus('active');
+      alert('Produto adicionado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao adicionar produto:', error);
+      alert('Erro ao adicionar produto.');
+    }
+  };
+
+  const handleEditClick = (product) => {
+    setEditingProduct(product);
+    setNewProductName(product.name);
+    setNewProductDescription(product.description || '');
+    setNewProductSku(product.sku || '');
+    setNewProductStatus(product.status);
+    setNewProductCategoryId(product.category_id);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!newProductName.trim() || !newProductCategoryId) {
+      alert('Nome do produto e categoria são obrigatórios.');
+      return;
+    }
+    try {
+      const response = await api.put(`/api/products/${editingProduct.id}`, {
+        name: newProductName,
+        description: newProductDescription,
+        sku: newProductSku,
+        status: newProductStatus,
+        category_id: newProductCategoryId,
+      });
+      setProducts(products.map(prod => (prod.id === editingProduct.id ? { ...response.data, category_name: categories.find(cat => cat.id === response.data.category_id)?.name } : prod)));
+      setEditingProduct(null);
+      setNewProductName('');
+      setNewProductDescription('');
+      setNewProductSku('');
+      setNewProductStatus('active');
+      alert('Produto atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      alert('Erro ao atualizar produto.');
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (window.confirm('Tem certeza que deseja deletar este produto?')) {
+      try {
+        await api.delete(`/api/products/${id}`);
+        setProducts(products.filter(prod => prod.id !== id));
+        alert('Produto deletado com sucesso!');
+      } catch (error) {
+        console.error('Erro ao deletar produto:', error);
+        alert('Erro ao deletar produto.');
+      }
+    }
+  };
 
   return (
-    <div className="p-4">
+    <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Produtos</h1>
-      <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <input name="nome"    value={form.nome}    onChange={change} placeholder="Nome"
-          required className="border p-2" />
-        <input name="descricao" value={form.descricao} onChange={change} placeholder="Descrição"
-          className="border p-2" />
-        <input name="preco"   type="number" value={form.preco} onChange={change} placeholder="Preço"
-          required className="border p-2" />
-        <input name="categoria" value={form.categoria} onChange={change} placeholder="Categoria"
-          className="border p-2" />
-        <input name="imagem_url" value={form.imagem_url} onChange={change} placeholder="URL da Imagem"
-          className="border p-2" />
-        <button type="submit" className="col-span-full bg-green-500 text-white py-2 rounded">
-          {editingId ? 'Atualizar Produto' : 'Cadastrar Produto'}
-        </button>
-      </form>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {produtos.map(p => (
-          <div key={p.id} className="border p-4 rounded shadow">
-            <h2 className="font-semibold">{p.nome}</h2>
-            <p className="text-sm mb-2">{p.descricao}</p>
-            <p className="font-bold">R$ {p.preco.toFixed(2)}</p>
-            <div className="mt-2 space-x-2">
-              <button onClick={()=>edit(p)} className="text-blue-600">✎</button>
-              <button onClick={()=>del(p.id)} className="text-red-600">🗑</button>
-            </div>
-          </div>
-        ))}
+
+      <div className="mb-8 p-4 border rounded shadow-sm">
+        <h2 className="text-xl font-semibold mb-2">{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</h2>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productName">Nome:</label>
+          <input
+            type="text"
+            id="productName"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={newProductName}
+            onChange={(e) => setNewProductName(e.target.value)}
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productDescription">Descrição:</label>
+          <textarea
+            id="productDescription"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={newProductDescription}
+            onChange={(e) => setNewProductDescription(e.target.value)}
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productSku">SKU:</label>
+          <input
+            type="text"
+            id="productSku"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={newProductSku}
+            onChange={(e) => setNewProductSku(e.target.value)}
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productStatus">Status:</label>
+          <select
+            id="productStatus"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={newProductStatus}
+            onChange={(e) => setNewProductStatus(e.target.value)}
+          >
+            <option value="active">Ativo</option>
+            <option value="inactive">Inativo</option>
+          </select>
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productCategory">Categoria:</label>
+          <select
+            id="productCategory"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={newProductCategoryId}
+            onChange={(e) => setNewProductCategoryId(e.target.value)}
+          >
+            {categories.map(category => (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ))}
+          </select>
+        </div>
+        {editingProduct ? (
+          <button
+            onClick={handleUpdateProduct}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Atualizar Produto
+          </button>
+        ) : (
+          <button
+            onClick={handleAddProduct}
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Adicionar Produto
+          </button>
+        )}
+        {editingProduct && (
+          <button
+            onClick={() => {
+              setEditingProduct(null);
+              setNewProductName('');
+              setNewProductDescription('');
+              setNewProductSku('');
+              setNewProductStatus('active');
+              setNewProductCategoryId(categories.length > 0 ? categories[0].id : '');
+            }}
+            className="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Cancelar
+          </button>
+        )}
+      </div>
+
+      <h2 className="text-xl font-semibold mb-2">Produtos Existentes</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200">
+          <thead>
+            <tr>
+              <th className="py-2 px-4 border-b">ID</th>
+              <th className="py-2 px-4 border-b">Nome</th>
+              <th className="py-2 px-4 border-b">Categoria</th>
+              <th className="py-2 px-4 border-b">Status</th>
+              <th className="py-2 px-4 border-b">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((product) => (
+              <tr key={product.id}>
+                <td className="py-2 px-4 border-b text-center">{product.id}</td>
+                <td className="py-2 px-4 border-b">{product.name}</td>
+                <td className="py-2 px-4 border-b">{product.category_name}</td>
+                <td className="py-2 px-4 border-b text-center">{product.status === 'active' ? 'Ativo' : 'Inativo'}</td>
+                <td className="py-2 px-4 border-b text-center">
+                  <button
+                    onClick={() => handleEditClick(product)}
+                    className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded text-sm mr-2"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProduct(product.id)}
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+                  >
+                    Deletar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-}
+};
+
+export default AdminProdutos;

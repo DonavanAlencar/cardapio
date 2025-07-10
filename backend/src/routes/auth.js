@@ -15,6 +15,8 @@ if (!process.env.JWT_SECRET) {
 }
 
 router.post('/login', async (req, res) => {
+  console.log('Requisição de login recebida:', req.body.email);
+
   const { email, password } = req.body;
 
   // 2) Validação de entrada
