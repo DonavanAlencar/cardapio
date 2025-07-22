@@ -23,7 +23,6 @@ import Hero from './components/Hero';
 import FeatureGrid from './components/FeatureGrid';
 import Gallery from './components/Gallery';
 import ContactForm from './components/ContactForm';
-import Footer from './components/Footer';
 import Extras from './components/Extras';
 
 function App() {
@@ -49,7 +48,6 @@ function App() {
       <Gallery />
       <ContactForm />
       <Extras />
-      <Footer />
     </>
   );
 

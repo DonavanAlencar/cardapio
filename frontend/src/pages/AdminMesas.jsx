@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import jwt_decode from 'jwt-decode';
 
 const AdminMesas = () => {
   const [tables, setTables] = useState([]);
@@ -22,9 +23,26 @@ const AdminMesas = () => {
     }
   };
 
+  // Adiciona obtenção do branch_id do token
+  const getBranchId = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    try {
+      const user = jwt_decode(token);
+      return user.branch_id;
+    } catch {
+      return null;
+    }
+  };
+
   const handleAddTable = async () => {
     if (!newTableNumber.trim() || !newTableCapacity) {
       alert('Número da mesa e capacidade são obrigatórios.');
+      return;
+    }
+    const branch_id = getBranchId();
+    if (!branch_id) {
+      alert('Não foi possível identificar a filial do usuário.');
       return;
     }
     try {
@@ -32,6 +50,7 @@ const AdminMesas = () => {
         table_number: newTableNumber,
         capacity: newTableCapacity,
         status: newTableStatus,
+        branch_id,
       });
       setTables([...tables, response.data]);
       setNewTableNumber('');
@@ -56,11 +75,17 @@ const AdminMesas = () => {
       alert('Número da mesa e capacidade são obrigatórios.');
       return;
     }
+    const branch_id = getBranchId();
+    if (!branch_id) {
+      alert('Não foi possível identificar a filial do usuário.');
+      return;
+    }
     try {
       const response = await api.put(`/api/tables/${editingTable.id}`, {
         table_number: newTableNumber,
         capacity: newTableCapacity,
         status: newTableStatus,
+        branch_id,
       });
       setTables(tables.map(tbl => (tbl.id === editingTable.id ? response.data : tbl)));
       setEditingTable(null);
