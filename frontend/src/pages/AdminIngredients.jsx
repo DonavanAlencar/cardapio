@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 const AdminIngredients = () => {
   const [ingredients, setIngredients] = useState([]);
@@ -9,6 +14,7 @@ const AdminIngredients = () => {
   const [newIngredientMinStock, setNewIngredientMinStock] = useState(0);
   const [newIngredientActive, setNewIngredientActive] = useState(true);
   const [editingIngredient, setEditingIngredient] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchIngredients();
@@ -99,95 +105,111 @@ const AdminIngredients = () => {
     }
   };
 
+  const openAddModal = () => {
+    setEditingIngredient(null);
+    setNewIngredientName('');
+    setNewIngredientUnit('');
+    setNewIngredientStock(0);
+    setNewIngredientMinStock(0);
+    setNewIngredientActive(true);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (ingredient) => {
+    setEditingIngredient(ingredient);
+    setNewIngredientName(ingredient.nome);
+    setNewIngredientUnit(ingredient.unidade_medida);
+    setNewIngredientStock(ingredient.quantidade_estoque);
+    setNewIngredientMinStock(ingredient.quantidade_minima);
+    setNewIngredientActive(ingredient.ativo === 1);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Ingredientes</h1>
 
       <div className="mb-8 p-4 border rounded shadow-sm">
-        <h2 className="text-xl font-semibold mb-2">{editingIngredient ? 'Editar Ingrediente' : 'Adicionar Novo Ingrediente'}</h2>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientName">Nome:</label>
-          <input
-            type="text"
-            id="ingredientName"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newIngredientName}
-            onChange={(e) => setNewIngredientName(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientUnit">Unidade de Medida:</label>
-          <input
-            type="text"
-            id="ingredientUnit"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newIngredientUnit}
-            onChange={(e) => setNewIngredientUnit(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientStock">Quantidade em Estoque:</label>
-          <input
-            type="number"
-            id="ingredientStock"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newIngredientStock}
-            onChange={(e) => setNewIngredientStock(parseFloat(e.target.value))}
-            step="0.01"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientMinStock">Quantidade Mínima:</label>
-          <input
-            type="number"
-            id="ingredientMinStock"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newIngredientMinStock}
-            onChange={(e) => setNewIngredientMinStock(parseFloat(e.target.value))}
-            step="0.01"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientActive">Ativo:</label>
-          <input
-            type="checkbox"
-            id="ingredientActive"
-            className="mr-2 leading-tight"
-            checked={newIngredientActive}
-            onChange={(e) => setNewIngredientActive(e.target.checked)}
-          />
-        </div>
-        {editingIngredient ? (
-          <button
-            onClick={handleUpdateIngredient}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Atualizar Ingrediente
-          </button>
-        ) : (
-          <button
-            onClick={handleAddIngredient}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Adicionar Ingrediente
-          </button>
-        )}
-        {editingIngredient && (
-          <button
-            onClick={() => {
-              setEditingIngredient(null);
-              setNewIngredientName('');
-              setNewIngredientUnit('');
-              setNewIngredientStock(0);
-              setNewIngredientMinStock(0);
-              setNewIngredientActive(true);
-            }}
-            className="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Cancelar
-          </button>
-        )}
+        <Button variant="contained" color="primary" onClick={openAddModal}>
+          Adicionar Ingrediente
+        </Button>
       </div>
+
+      <Dialog open={modalOpen} onClose={closeModal} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingIngredient ? 'Editar Ingrediente' : 'Adicionar Ingrediente'}</DialogTitle>
+        <DialogContent>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientName">Nome:</label>
+            <input
+              type="text"
+              id="ingredientName"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newIngredientName}
+              onChange={(e) => setNewIngredientName(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientUnit">Unidade de Medida:</label>
+            <input
+              type="text"
+              id="ingredientUnit"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newIngredientUnit}
+              onChange={(e) => setNewIngredientUnit(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientStock">Quantidade em Estoque:</label>
+            <input
+              type="number"
+              id="ingredientStock"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newIngredientStock}
+              onChange={(e) => setNewIngredientStock(parseFloat(e.target.value))}
+              step="0.01"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientMinStock">Quantidade Mínima:</label>
+            <input
+              type="number"
+              id="ingredientMinStock"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newIngredientMinStock}
+              onChange={(e) => setNewIngredientMinStock(parseFloat(e.target.value))}
+              step="0.01"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ingredientActive">Ativo:</label>
+            <input
+              type="checkbox"
+              id="ingredientActive"
+              className="mr-2 leading-tight"
+              checked={newIngredientActive}
+              onChange={(e) => setNewIngredientActive(e.target.checked)}
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          {editingIngredient ? (
+            <Button onClick={async () => { await handleUpdateIngredient(); closeModal(); }} color="primary" variant="contained">
+              Atualizar Ingrediente
+            </Button>
+          ) : (
+            <Button onClick={async () => { await handleAddIngredient(); closeModal(); }} color="success" variant="contained">
+              Adicionar Ingrediente
+            </Button>
+          )}
+          <Button onClick={closeModal} color="secondary" variant="outlined">
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <h2 className="text-xl font-semibold mb-2">Ingredientes Existentes</h2>
       <div className="overflow-x-auto w-full">
@@ -213,18 +235,12 @@ const AdminIngredients = () => {
                 <td className="py-2 px-4 border-b text-center">{ingredient.quantidade_minima}</td>
                 <td className="py-2 px-4 border-b text-center">{ingredient.ativo ? 'Sim' : 'Não'}</td>
                 <td className="py-2 px-4 border-b text-center">
-                  <button
-                    onClick={() => handleEditClick(ingredient)}
-                    className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded text-sm mr-2"
-                  >
+                  <Button onClick={() => openEditModal(ingredient)} color="warning" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Editar
-                  </button>
-                  <button
-                    onClick={() => handleDeleteIngredient(ingredient.id)}
-                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
-                  >
+                  </Button>
+                  <Button onClick={() => handleDeleteIngredient(ingredient.id)} color="error" variant="contained" size="small">
                     Deletar
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

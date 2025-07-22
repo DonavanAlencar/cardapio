@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 const AdminProdutos = () => {
   const [products, setProducts] = useState([]);
@@ -10,6 +15,7 @@ const AdminProdutos = () => {
   const [newProductStatus, setNewProductStatus] = useState('active');
   const [newProductCategoryId, setNewProductCategoryId] = useState('');
   const [editingProduct, setEditingProduct] = useState(null); // null ou o objeto do produto sendo editado
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -112,97 +118,113 @@ const AdminProdutos = () => {
     }
   };
 
+  const openAddModal = () => {
+    setEditingProduct(null);
+    setNewProductName('');
+    setNewProductDescription('');
+    setNewProductSku('');
+    setNewProductStatus('active');
+    setNewProductCategoryId(categories.length > 0 ? categories[0].id : '');
+    setModalOpen(true);
+  };
+
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setNewProductName(product.name);
+    setNewProductDescription(product.description || '');
+    setNewProductSku(product.sku || '');
+    setNewProductStatus(product.status);
+    setNewProductCategoryId(product.category_id);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Produtos</h1>
 
       <div className="mb-8 p-4 border rounded shadow-sm">
-        <h2 className="text-xl font-semibold mb-2">{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</h2>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productName">Nome:</label>
-          <input
-            type="text"
-            id="productName"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newProductName}
-            onChange={(e) => setNewProductName(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productDescription">Descrição:</label>
-          <textarea
-            id="productDescription"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newProductDescription}
-            onChange={(e) => setNewProductDescription(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productSku">SKU:</label>
-          <input
-            type="text"
-            id="productSku"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newProductSku}
-            onChange={(e) => setNewProductSku(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productStatus">Status:</label>
-          <select
-            id="productStatus"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newProductStatus}
-            onChange={(e) => setNewProductStatus(e.target.value)}
-          >
-            <option value="active">Ativo</option>
-            <option value="inactive">Inativo</option>
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productCategory">Categoria:</label>
-          <select
-            id="productCategory"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newProductCategoryId}
-            onChange={(e) => setNewProductCategoryId(e.target.value)}
-          >
-            {categories.map(category => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
-        </div>
-        {editingProduct ? (
-          <button
-            onClick={handleUpdateProduct}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Atualizar Produto
-          </button>
-        ) : (
-          <button
-            onClick={handleAddProduct}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Adicionar Produto
-          </button>
-        )}
-        {editingProduct && (
-          <button
-            onClick={() => {
-              setEditingProduct(null);
-              setNewProductName('');
-              setNewProductDescription('');
-              setNewProductSku('');
-              setNewProductStatus('active');
-              setNewProductCategoryId(categories.length > 0 ? categories[0].id : '');
-            }}
-            className="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Cancelar
-          </button>
-        )}
+        <Button variant="contained" color="primary" onClick={openAddModal}>
+          Adicionar Novo Produto
+        </Button>
       </div>
+
+      <Dialog open={modalOpen} onClose={closeModal} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
+        <DialogContent>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productName">Nome:</label>
+            <input
+              type="text"
+              id="productName"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newProductName}
+              onChange={(e) => setNewProductName(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productDescription">Descrição:</label>
+            <textarea
+              id="productDescription"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newProductDescription}
+              onChange={(e) => setNewProductDescription(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productSku">SKU:</label>
+            <input
+              type="text"
+              id="productSku"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newProductSku}
+              onChange={(e) => setNewProductSku(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productStatus">Status:</label>
+            <select
+              id="productStatus"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newProductStatus}
+              onChange={(e) => setNewProductStatus(e.target.value)}
+            >
+              <option value="active">Ativo</option>
+              <option value="inactive">Inativo</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="productCategory">Categoria:</label>
+            <select
+              id="productCategory"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newProductCategoryId}
+              onChange={(e) => setNewProductCategoryId(e.target.value)}
+            >
+              {categories.map(category => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </select>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          {editingProduct ? (
+            <Button onClick={async () => { await handleUpdateProduct(); closeModal(); }} color="primary" variant="contained">
+              Atualizar Produto
+            </Button>
+          ) : (
+            <Button onClick={async () => { await handleAddProduct(); closeModal(); }} color="success" variant="contained">
+              Adicionar Produto
+            </Button>
+          )}
+          <Button onClick={closeModal} color="secondary" variant="outlined">
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <h2 className="text-xl font-semibold mb-2">Produtos Existentes</h2>
       <div className="overflow-x-auto w-full">
@@ -224,18 +246,12 @@ const AdminProdutos = () => {
                 <td className="py-2 px-4 border-b">{product.category_name}</td>
                 <td className="py-2 px-4 border-b text-center">{product.status === 'active' ? 'Ativo' : 'Inativo'}</td>
                 <td className="py-2 px-4 border-b text-center">
-                  <button
-                    onClick={() => handleEditClick(product)}
-                    className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded text-sm mr-2"
-                  >
+                  <Button onClick={() => openEditModal(product)} color="warning" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Editar
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProduct(product.id)}
-                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
-                  >
+                  </Button>
+                  <Button onClick={() => handleDeleteProduct(product.id)} color="error" variant="contained" size="small">
                     Deletar
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

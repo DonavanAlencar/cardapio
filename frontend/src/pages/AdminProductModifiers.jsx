@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 const AdminProductModifiers = () => {
   const [modifiers, setModifiers] = useState([]);
@@ -12,6 +17,7 @@ const AdminProductModifiers = () => {
   const [newModifierFactorConsumo, setNewModifierFactorConsumo] = useState(1.0);
   const [newModifierAjustePreco, setNewModifierAjustePreco] = useState(0.00);
   const [editingModifier, setEditingModifier] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchModifiers();
@@ -138,116 +144,133 @@ const AdminProductModifiers = () => {
     }
   };
 
+  const openAddModal = () => {
+    setEditingModifier(null);
+    setNewModifierName('');
+    setNewModifierType('ADICAO');
+    setNewModifierProductId(products.length > 0 ? products[0].id : '');
+    setNewModifierIngredientId(ingredients.length > 0 ? ingredients[0].id : '');
+    setNewModifierFactorConsumo(1.0);
+    setNewModifierAjustePreco(0.00);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (modifier) => {
+    setEditingModifier(modifier);
+    setNewModifierName(modifier.nome);
+    setNewModifierType(modifier.tipo);
+    setNewModifierProductId(modifier.product_id);
+    setNewModifierIngredientId(modifier.ingrediente_id || '');
+    setNewModifierFactorConsumo(modifier.fator_consumo);
+    setNewModifierAjustePreco(modifier.ajuste_preco);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Modificadores de Produtos</h1>
 
       <div className="mb-8 p-4 border rounded shadow-sm">
-        <h2 className="text-xl font-semibold mb-2">{editingModifier ? 'Editar Modificador' : 'Adicionar Novo Modificador'}</h2>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierName">Nome:</label>
-          <input
-            type="text"
-            id="modifierName"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newModifierName}
-            onChange={(e) => setNewModifierName(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierProduct">Produto:</label>
-          <select
-            id="modifierProduct"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newModifierProductId}
-            onChange={(e) => setNewModifierProductId(e.target.value)}
-          >
-            {products.map(product => (
-              <option key={product.id} value={product.id}>{product.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierType">Tipo:</label>
-          <select
-            id="modifierType"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newModifierType}
-            onChange={(e) => setNewModifierType(e.target.value)}
-          >
-            <option value="ADICAO">Adição</option>
-            <option value="REMOCAO">Remoção</option>
-            <option value="SUBSTITUICAO">Substituição</option>
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierIngredient">Ingrediente (opcional):</label>
-          <select
-            id="modifierIngredient"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newModifierIngredientId}
-            onChange={(e) => setNewModifierIngredientId(e.target.value)}
-          >
-            <option value="">Nenhum</option>
-            {ingredients.map(ingredient => (
-              <option key={ingredient.id} value={ingredient.id}>{ingredient.nome}</option>
-            ))}
-          </select>
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierFactorConsumo">Fator de Consumo:</label>
-          <input
-            type="number"
-            id="modifierFactorConsumo"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newModifierFactorConsumo}
-            onChange={(e) => setNewModifierFactorConsumo(parseFloat(e.target.value))}
-            step="0.01"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierAjustePreco">Ajuste de Preço:</label>
-          <input
-            type="number"
-            id="modifierAjustePreco"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={newModifierAjustePreco}
-            onChange={(e) => setNewModifierAjustePreco(parseFloat(e.target.value))}
-            step="0.01"
-          />
-        </div>
-        {editingModifier ? (
-          <button
-            onClick={handleUpdateModifier}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Atualizar Modificador
-          </button>
-        ) : (
-          <button
-            onClick={handleAddModifier}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Adicionar Modificador
-          </button>
-        )}
-        {editingModifier && (
-          <button
-            onClick={() => {
-              setEditingModifier(null);
-              setNewModifierName('');
-              setNewModifierType('ADICAO');
-              setNewModifierProductId(products.length > 0 ? products[0].id : '');
-              setNewModifierIngredientId(ingredients.length > 0 ? ingredients[0].id : '');
-              setNewModifierFactorConsumo(1.0);
-              setNewModifierAjustePreco(0.00);
-            }}
-            className="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Cancelar
-          </button>
-        )}
+        <Button variant="contained" color="primary" onClick={openAddModal}>
+          Adicionar Modificador
+        </Button>
       </div>
+
+      <Dialog open={modalOpen} onClose={closeModal} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingModifier ? 'Editar Modificador' : 'Adicionar Modificador'}</DialogTitle>
+        <DialogContent>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierName">Nome:</label>
+            <input
+              type="text"
+              id="modifierName"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newModifierName}
+              onChange={(e) => setNewModifierName(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierProduct">Produto:</label>
+            <select
+              id="modifierProduct"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newModifierProductId}
+              onChange={(e) => setNewModifierProductId(e.target.value)}
+            >
+              {products.map(product => (
+                <option key={product.id} value={product.id}>{product.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierType">Tipo:</label>
+            <select
+              id="modifierType"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newModifierType}
+              onChange={(e) => setNewModifierType(e.target.value)}
+            >
+              <option value="ADICAO">Adição</option>
+              <option value="REMOCAO">Remoção</option>
+              <option value="SUBSTITUICAO">Substituição</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierIngredient">Ingrediente (opcional):</label>
+            <select
+              id="modifierIngredient"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newModifierIngredientId}
+              onChange={(e) => setNewModifierIngredientId(e.target.value)}
+            >
+              <option value="">Nenhum</option>
+              {ingredients.map(ingredient => (
+                <option key={ingredient.id} value={ingredient.id}>{ingredient.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierFactorConsumo">Fator de Consumo:</label>
+            <input
+              type="number"
+              id="modifierFactorConsumo"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newModifierFactorConsumo}
+              onChange={(e) => setNewModifierFactorConsumo(parseFloat(e.target.value))}
+              step="0.01"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="modifierAjustePreco">Ajuste de Preço:</label>
+            <input
+              type="number"
+              id="modifierAjustePreco"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={newModifierAjustePreco}
+              onChange={(e) => setNewModifierAjustePreco(parseFloat(e.target.value))}
+              step="0.01"
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          {editingModifier ? (
+            <Button onClick={async () => { await handleUpdateModifier(); closeModal(); }} color="primary" variant="contained">
+              Atualizar Modificador
+            </Button>
+          ) : (
+            <Button onClick={async () => { await handleAddModifier(); closeModal(); }} color="success" variant="contained">
+              Adicionar Modificador
+            </Button>
+          )}
+          <Button onClick={closeModal} color="secondary" variant="outlined">
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <h2 className="text-xl font-semibold mb-2">Modificadores Existentes</h2>
       <div className="overflow-x-auto w-full">
@@ -275,18 +298,12 @@ const AdminProductModifiers = () => {
                 <td className="py-2 px-4 border-b text-center">{modifier.fator_consumo}</td>
                 <td className="py-2 px-4 border-b text-center">{typeof modifier.ajuste_preco === 'number' ? modifier.ajuste_preco.toFixed(2) : 'N/A'}</td>
                 <td className="py-2 px-4 border-b text-center">
-                  <button
-                    onClick={() => handleEditClick(modifier)}
-                    className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded text-sm mr-2"
-                  >
+                  <Button onClick={() => openEditModal(modifier)} color="warning" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Editar
-                  </button>
-                  <button
-                    onClick={() => handleDeleteModifier(modifier.id)}
-                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
-                  >
+                  </Button>
+                  <Button onClick={() => handleDeleteModifier(modifier.id)} color="error" variant="contained" size="small">
                     Deletar
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
