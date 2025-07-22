@@ -118,6 +118,20 @@ const AdminProdutos = () => {
     }
   };
 
+  const handleToggleProductStatus = async (product) => {
+    try {
+      await api.put(`/api/products/${product.id}`, {
+        ...product,
+        status: product.status === 'active' ? 'inactive' : 'active',
+      });
+      fetchProducts();
+      alert(`Produto ${product.status === 'active' ? 'inativado' : 'ativado'} com sucesso!`);
+    } catch (error) {
+      console.error('Erro ao alterar status do produto:', error);
+      alert('Erro ao alterar status do produto.');
+    }
+  };
+
   const openAddModal = () => {
     setEditingProduct(null);
     setNewProductName('');
@@ -249,8 +263,11 @@ const AdminProdutos = () => {
                   <Button onClick={() => openEditModal(product)} color="warning" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Editar
                   </Button>
-                  <Button onClick={() => handleDeleteProduct(product.id)} color="error" variant="contained" size="small">
+                  <Button onClick={() => handleDeleteProduct(product.id)} color="error" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Deletar
+                  </Button>
+                  <Button onClick={() => handleToggleProductStatus(product)} color={product.status === 'active' ? 'secondary' : 'success'} variant="outlined" size="small">
+                    {product.status === 'active' ? 'Inativar' : 'Ativar'}
                   </Button>
                 </td>
               </tr>

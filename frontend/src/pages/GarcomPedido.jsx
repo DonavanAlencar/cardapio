@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 export default function GarcomPedido() {
   const { pedidoId } = useParams();
@@ -11,6 +16,10 @@ export default function GarcomPedido() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modifierModalOpen, setModifierModalOpen] = useState(false);
+  const [modifiers, setModifiers] = useState([]);
+  const [selectedModifiers, setSelectedModifiers] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -55,13 +64,44 @@ export default function GarcomPedido() {
     }
   };
 
-  const handleAddItem = async (productId) => {
+  const openModifierModal = async (product) => {
+    setSelectedProduct(product);
+    setSelectedModifiers([]);
+    try {
+      const res = await api.get(`/api/product-modifiers?product_id=${product.id}`);
+      setModifiers(res.data);
+      setModifierModalOpen(true);
+    } catch (err) {
+      setModifiers([]);
+      setModifierModalOpen(true);
+    }
+  };
+
+  const closeModifierModal = () => {
+    setModifierModalOpen(false);
+    setSelectedProduct(null);
+    setModifiers([]);
+    setSelectedModifiers([]);
+  };
+
+  const handleToggleModifier = (modifierId) => {
+    setSelectedModifiers((prev) =>
+      prev.includes(modifierId)
+        ? prev.filter((id) => id !== modifierId)
+        : [...prev, modifierId]
+    );
+  };
+
+  const handleAddItemWithModifiers = async () => {
+    if (!selectedProduct) return;
     try {
       await api.post(`/api/orders/${pedidoId}/items`, {
-        product_id: productId,
+        product_id: selectedProduct.id,
         quantity: 1,
+        modifier_ids: selectedModifiers,
       });
-      fetchOrder(pedidoId); // Recarrega o pedido para atualizar a lista de itens
+      fetchOrder(pedidoId);
+      closeModifierModal();
       alert('Item adicionado ao pedido!');
     } catch (err) {
       console.error('Erro ao adicionar item:', err);
@@ -135,16 +175,46 @@ export default function GarcomPedido() {
             <div key={p.id} className="border p-2 rounded">
               <h3 className="font-medium">{p.name}</h3>
               <p className="text-sm">R$ {p.price ? p.price.toFixed(2) : 'N/A'}</p>
-              <button
-                onClick={() => handleAddItem(p.id)}
+              <Button
+                onClick={() => openModifierModal(p)}
                 className="mt-2 bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded"
+                variant="contained"
+                color="primary"
               >
                 +1
-              </button>
+              </Button>
             </div>
           ))}
         </div>
       </div>
+
+      <Dialog open={modifierModalOpen} onClose={closeModifierModal} maxWidth="sm" fullWidth>
+        <DialogTitle>Personalizar Item</DialogTitle>
+        <DialogContent>
+          <div className="mb-2 font-semibold">{selectedProduct ? selectedProduct.name : ''}</div>
+          {modifiers.length === 0 && <div>Nenhum modificador disponível para este produto.</div>}
+          {modifiers.map((mod) => (
+            <div key={mod.id} className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                id={`mod-${mod.id}`}
+                checked={selectedModifiers.includes(mod.id)}
+                onChange={() => handleToggleModifier(mod.id)}
+                className="mr-2"
+              />
+              <label htmlFor={`mod-${mod.id}`}>{mod.nome} ({mod.tipo}) {mod.ajuste_preco ? `(+R$ ${parseFloat(mod.ajuste_preco).toFixed(2)})` : ''}</label>
+            </div>
+          ))}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAddItemWithModifiers} color="primary" variant="contained">
+            Adicionar ao Pedido
+          </Button>
+          <Button onClick={closeModifierModal} color="secondary" variant="outlined">
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <div>
         <h2 className="font-semibold mb-2">Itens no Pedido</h2>

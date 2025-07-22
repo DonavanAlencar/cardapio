@@ -117,7 +117,7 @@ router.post('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
 // Rota para adicionar um item a um pedido existente
 router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, res) => {
   const { orderId } = req.params;
-  const { product_id, quantity } = req.body;
+  const { product_id, quantity, modifier_ids = [] } = req.body;
   let connection;
   try {
     connection = await pool.getConnection();
@@ -130,45 +130,98 @@ router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, 
     }
     let currentTotalAmount = orderRows[0].total_amount;
 
+    // Preço base do produto
     const [productPriceRows] = await connection.query(
       'SELECT price FROM product_prices WHERE product_id = ? AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY start_date DESC LIMIT 1',
       [product_id]
     );
-    const unitPrice = productPriceRows.length > 0 ? productPriceRows[0].price : 0;
-    const totalPrice = unitPrice * quantity;
+    let unitPrice = productPriceRows.length > 0 ? parseFloat(productPriceRows[0].price) : 0;
+    let totalModifierPrice = 0;
 
+    // Buscar modificadores e somar ajuste de preço
+    let modifiers = [];
+    if (modifier_ids.length > 0) {
+      const [modifierRows] = await connection.query(
+        `SELECT * FROM produto_modificadores WHERE id IN (${modifier_ids.map(() => '?').join(',')})`,
+        modifier_ids
+      );
+      modifiers = modifierRows;
+      totalModifierPrice = modifierRows.reduce((sum, mod) => sum + parseFloat(mod.ajuste_preco || 0), 0);
+    }
+    const finalUnitPrice = unitPrice + totalModifierPrice;
+    const totalPrice = finalUnitPrice * quantity;
+
+    // Inserir item do pedido
     const [result] = await connection.query(
       'INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)',
-      [orderId, product_id, quantity, unitPrice, totalPrice]
+      [orderId, product_id, quantity, finalUnitPrice, totalPrice]
     );
     const newItemId = result.insertId;
 
-    // Dedução de estoque para item adicionado
+    // Registrar modificadores do item
+    for (const modId of modifier_ids) {
+      await connection.query(
+        'INSERT INTO order_item_modifiers (order_item_id, modifier_id) VALUES (?, ?)',
+        [newItemId, modId]
+      );
+    }
+
+    // Dedução de estoque para produto base
     const [ingredientsRows] = await connection.query(
       'SELECT ingrediente_id, quantidade FROM produto_ingredientes WHERE product_id = ?',
       [product_id]
     );
-
     for (const ing of ingredientsRows) {
-      const requiredQuantity = ing.quantidade * quantity;
-      const [stockRows] = await connection.query(
-        'SELECT quantidade_estoque FROM ingredientes WHERE id = ?',
-        [ing.ingrediente_id]
-      );
-      if (stockRows.length === 0 || stockRows[0].quantidade_estoque < requiredQuantity) {
-        throw new Error(`Estoque insuficiente para o ingrediente ${ing.ingrediente_id}`);
+      let requiredQuantity = ing.quantidade * quantity;
+      // Ajustar pelo modificador se houver
+      for (const mod of modifiers) {
+        if (mod.ingrediente_id === ing.ingrediente_id) {
+          if (mod.tipo === 'ADICAO') {
+            requiredQuantity += (mod.fator_consumo || 1) * quantity;
+          } else if (mod.tipo === 'REMOCAO') {
+            requiredQuantity -= (mod.fator_consumo || 1) * quantity;
+          } // SUBSTITUICAO pode ser tratado conforme regra de negócio
+        }
       }
-      await connection.query(
-        'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
-        [requiredQuantity, ing.ingrediente_id]
-      );
+      if (requiredQuantity > 0) {
+        const [stockRows] = await connection.query(
+          'SELECT quantidade_estoque FROM ingredientes WHERE id = ?',
+          [ing.ingrediente_id]
+        );
+        if (stockRows.length === 0 || stockRows[0].quantidade_estoque < requiredQuantity) {
+          throw new Error(`Estoque insuficiente para o ingrediente ${ing.ingrediente_id}`);
+        }
+        await connection.query(
+          'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
+          [requiredQuantity, ing.ingrediente_id]
+        );
+      }
+    }
+    // Dedução de estoque para ingredientes de modificadores que não estão na lista base
+    for (const mod of modifiers) {
+      if (mod.ingrediente_id && !ingredientsRows.some(ing => ing.ingrediente_id === mod.ingrediente_id)) {
+        if (mod.tipo === 'ADICAO') {
+          const requiredQuantity = (mod.fator_consumo || 1) * quantity;
+          const [stockRows] = await connection.query(
+            'SELECT quantidade_estoque FROM ingredientes WHERE id = ?',
+            [mod.ingrediente_id]
+          );
+          if (stockRows.length === 0 || stockRows[0].quantidade_estoque < requiredQuantity) {
+            throw new Error(`Estoque insuficiente para o ingrediente ${mod.ingrediente_id}`);
+          }
+          await connection.query(
+            'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
+            [requiredQuantity, mod.ingrediente_id]
+          );
+        }
+      }
     }
 
     currentTotalAmount += totalPrice;
     await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [currentTotalAmount, orderId]);
 
     await connection.commit();
-    res.status(201).json({ id: newItemId, order_id: orderId, product_id, quantity, unit_price: unitPrice, total_price: totalPrice });
+    res.status(201).json({ id: newItemId, order_id: orderId, product_id, quantity, unit_price: finalUnitPrice, total_price: totalPrice, modifier_ids });
   } catch (err) {
     if (connection) await connection.rollback();
     console.error('Erro ao adicionar item ao pedido:', err);

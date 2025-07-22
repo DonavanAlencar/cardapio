@@ -30,8 +30,8 @@ export default function Cardapio() {
   };
 
   const exibidos = filtro === 'todas'
-    ? produtos
-    : produtos.filter(p => p.category_id === filtro);
+    ? produtos.filter(p => p.status === 'active')
+    : produtos.filter(p => p.category_id === filtro && p.status === 'active');
 
   return (
     <div className="p-4">

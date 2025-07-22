@@ -15,6 +15,10 @@ const AdminIngredients = () => {
   const [newIngredientActive, setNewIngredientActive] = useState(true);
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [entradaModalOpen, setEntradaModalOpen] = useState(false);
+  const [entradaIngredienteId, setEntradaIngredienteId] = useState('');
+  const [entradaQuantidade, setEntradaQuantidade] = useState(0);
+  const [entradaReferencia, setEntradaReferencia] = useState('');
 
   useEffect(() => {
     fetchIngredients();
@@ -129,6 +133,31 @@ const AdminIngredients = () => {
     setModalOpen(false);
   };
 
+  const openEntradaModal = (id) => {
+    setEntradaIngredienteId(id);
+    setEntradaQuantidade(0);
+    setEntradaReferencia('');
+    setEntradaModalOpen(true);
+  };
+  const closeEntradaModal = () => {
+    setEntradaModalOpen(false);
+  };
+  const handleRegistrarEntrada = async () => {
+    try {
+      await api.post('/api/stock-movements', {
+        ingrediente_id: entradaIngredienteId,
+        tipo_movimento: 'ENTRADA',
+        quantidade: entradaQuantidade,
+        referencia: entradaReferencia,
+      });
+      fetchIngredients();
+      closeEntradaModal();
+      alert('Entrada registrada com sucesso!');
+    } catch (error) {
+      alert('Erro ao registrar entrada de insumo.');
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Ingredientes</h1>
@@ -211,6 +240,36 @@ const AdminIngredients = () => {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={entradaModalOpen} onClose={closeEntradaModal} maxWidth="xs" fullWidth>
+        <DialogTitle>Registrar Entrada de Insumo</DialogTitle>
+        <DialogContent>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">Quantidade:</label>
+            <input
+              type="number"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={entradaQuantidade}
+              onChange={e => setEntradaQuantidade(parseFloat(e.target.value))}
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2">Referência (opcional):</label>
+            <input
+              type="text"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={entradaReferencia}
+              onChange={e => setEntradaReferencia(e.target.value)}
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleRegistrarEntrada} color="primary" variant="contained">Registrar</Button>
+          <Button onClick={closeEntradaModal} color="secondary" variant="outlined">Cancelar</Button>
+        </DialogActions>
+      </Dialog>
+
       <h2 className="text-xl font-semibold mb-2">Ingredientes Existentes</h2>
       <div className="overflow-x-auto w-full">
         <table className="min-w-full bg-white border border-gray-200 text-xs sm:text-sm">
@@ -231,15 +290,24 @@ const AdminIngredients = () => {
                 <td className="py-2 px-4 border-b text-center">{ingredient.id}</td>
                 <td className="py-2 px-4 border-b">{ingredient.nome}</td>
                 <td className="py-2 px-4 border-b">{ingredient.unidade_medida}</td>
-                <td className="py-2 px-4 border-b text-center">{ingredient.quantidade_estoque}</td>
-                <td className="py-2 px-4 border-b text-center">{ingredient.quantidade_minima}</td>
-                <td className="py-2 px-4 border-b text-center">{ingredient.ativo ? 'Sim' : 'Não'}</td>
+                <td className="py-2 px-4 border-b text-center" style={{ background: ingredient.quantidade_estoque < ingredient.quantidade_minima ? '#ffe5e5' : undefined }}>
+                  {ingredient.quantidade_estoque}
+                </td>
+                <td className="py-2 px-4 border-b text-center">
+                  {ingredient.quantidade_minima}
+                </td>
+                <td className="py-2 px-4 border-b text-center">
+                  {ingredient.ativo ? 'Sim' : 'Não'}
+                </td>
                 <td className="py-2 px-4 border-b text-center">
                   <Button onClick={() => openEditModal(ingredient)} color="warning" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Editar
                   </Button>
-                  <Button onClick={() => handleDeleteIngredient(ingredient.id)} color="error" variant="contained" size="small">
+                  <Button onClick={() => handleDeleteIngredient(ingredient.id)} color="error" variant="contained" size="small" style={{ marginRight: 8 }}>
                     Deletar
+                  </Button>
+                  <Button onClick={() => openEntradaModal(ingredient.id)} color="success" variant="outlined" size="small">
+                    Entrada
                   </Button>
                 </td>
               </tr>
