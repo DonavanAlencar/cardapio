@@ -21,6 +21,9 @@ export default function GarcomPedido() {
   const [selectedModifiers, setSelectedModifiers] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [kitchenStatus, setKitchenStatus] = useState({});
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [paySuccess, setPaySuccess] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -160,23 +163,38 @@ export default function GarcomPedido() {
     }
   };
 
+  const openPayModal = () => {
+    setPayError('');
+    setPaySuccess('');
+    setPayModalOpen(true);
+  };
+  const closePayModal = () => {
+    setPayModalOpen(false);
+  };
+
   const handleCloseOrder = async () => {
+    setPayError('');
+    setPaySuccess('');
     if (!selectedPaymentMethod) {
-      alert('Por favor, selecione um método de pagamento.');
+      setPayError('Por favor, selecione um método de pagamento.');
       return;
     }
-    if (window.confirm('Deseja fechar este pedido e registrar o pagamento?')) {
-      try {
-        await api.post('/api/payments', {
-          order_id: pedidoId,
-          payment_method_id: selectedPaymentMethod,
-          amount: order.total_amount, // Usar o total do pedido
-        });
-        alert(`Pedido ${pedidoId} fechado e pagamento registrado! Total: R$ ${order.total_amount.toFixed(2)}`);
-        navigate('/garcom/mesas'); // Redireciona para a tela de mesas após fechar o pedido
-      } catch (err) {
-        console.error('Erro ao fechar pedido e registrar pagamento:', err);
-        alert('Erro ao fechar pedido e registrar pagamento.');
+    try {
+      await api.post('/api/payments', {
+        order_id: pedidoId,
+        payment_method_id: selectedPaymentMethod,
+        amount: order.total_amount,
+      });
+      setPaySuccess(`Pedido ${pedidoId} fechado e pagamento registrado! Total: R$ ${order.total_amount.toFixed(2)}`);
+      setTimeout(() => {
+        setPayModalOpen(false);
+        navigate('/garcom/mesas');
+      }, 2000);
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setPayError(err.response.data.message);
+      } else {
+        setPayError('Erro ao fechar pedido e registrar pagamento.');
       }
     }
   };
@@ -299,10 +317,36 @@ export default function GarcomPedido() {
           </select>
         </div>
 
-        <button onClick={handleCloseOrder} className="mt-4 bg-green-600 text-white py-2 px-4 rounded">
+        <Button onClick={openPayModal} className="mt-4 bg-green-600 text-white py-2 px-4 rounded" variant="contained" color="success">
           Fechar Conta e Pagar
-        </button>
+        </Button>
       </div>
+
+      <Dialog open={payModalOpen} onClose={closePayModal} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirmação de Pagamento</DialogTitle>
+        <DialogContent>
+          <div className="mb-2">Total do Pedido: <b>R$ {order.total_amount ? order.total_amount.toFixed(2) : '0.00'}</b></div>
+          <div className="mb-2">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="paymentMethod">Método de Pagamento:</label>
+            <select
+              id="paymentMethod"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={selectedPaymentMethod}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+            >
+              {paymentMethods.map(method => (
+                <option key={method.id} value={method.id}>{method.name}</option>
+              ))}
+            </select>
+          </div>
+          {payError && <div className="text-red-600 mb-2">{payError}</div>}
+          {paySuccess && <div className="text-green-600 mb-2">{paySuccess}</div>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseOrder} color="primary" variant="contained">Confirmar Pagamento</Button>
+          <Button onClick={closePayModal} color="secondary" variant="outlined">Cancelar</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

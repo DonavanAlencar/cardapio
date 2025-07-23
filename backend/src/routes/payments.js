@@ -44,6 +44,19 @@ router.post('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
       return res.status(404).json({ message: 'Pedido não encontrado para fechamento.' });
     }
 
+    // Após registrar pagamento e fechar pedido:
+    const [drawerSessionRows] = await conn.query(
+      'SELECT id FROM cash_drawer_sessions WHERE opened_by = ? AND closed_at IS NULL ORDER BY opened_at DESC LIMIT 1',
+      [operator_id]
+    );
+    if (drawerSessionRows.length > 0) {
+      const sessionId = drawerSessionRows[0].id;
+      await conn.query(
+        'INSERT INTO cash_transactions (session_id, transaction_type, amount, description, occurred_at) VALUES (?, "entry", ?, ?, NOW())',
+        [sessionId, amount, `Pagamento pedido ${order_id}`]
+      );
+    }
+
     await conn.commit();
     return res.status(201).json({
       id: paymentResult.insertId,

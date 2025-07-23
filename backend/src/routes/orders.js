@@ -195,6 +195,10 @@ router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, 
           'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
           [requiredQuantity, ing.ingrediente_id]
         );
+        await connection.query(
+          'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ? , NOW())',
+          [ing.ingrediente_id, requiredQuantity, `order_item:${newItemId}`]
+        );
       }
     }
     // Dedução de estoque para ingredientes de modificadores que não estão na lista base
@@ -212,6 +216,10 @@ router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, 
           await connection.query(
             'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
             [requiredQuantity, mod.ingrediente_id]
+          );
+          await connection.query(
+            'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ? , NOW())',
+            [mod.ingrediente_id, requiredQuantity, `order_item:${newItemId}`]
           );
         }
       }
@@ -291,6 +299,63 @@ router.delete('/:orderId/items/:itemId', auth, authorizeWaiterAdminOrManager, as
     let currentTotalAmount = orderRows[0].total_amount;
     currentTotalAmount -= itemTotalPrice;
     await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [currentTotalAmount, orderId]);
+
+    // Buscar ingredientes e modificadores do item, reverter estoque
+    const [orderItemMods] = await connection.query('SELECT modifier_id FROM order_item_modifiers WHERE order_item_id = ?', [itemId]);
+    const modifierIds = orderItemMods.map(m => m.modifier_id);
+    let modifiers = [];
+    if (modifierIds.length > 0) {
+      const [modifierRows] = await connection.query(
+        `SELECT * FROM produto_modificadores WHERE id IN (${modifierIds.map(() => '?').join(',')})`,
+        modifierIds
+      );
+      modifiers = modifierRows;
+    }
+    const [itemRow] = await connection.query('SELECT * FROM order_items WHERE id = ?', [itemId]);
+    if (itemRow.length > 0) {
+      const item = itemRow[0];
+      const [ingredientsRows] = await connection.query(
+        'SELECT ingrediente_id, quantidade FROM produto_ingredientes WHERE product_id = ?',
+        [item.product_id]
+      );
+      for (const ing of ingredientsRows) {
+        let requiredQuantity = ing.quantidade * item.quantity;
+        for (const mod of modifiers) {
+          if (mod.ingrediente_id === ing.ingrediente_id) {
+            if (mod.tipo === 'ADICAO') {
+              requiredQuantity += (mod.fator_consumo || 1) * item.quantity;
+            } else if (mod.tipo === 'REMOCAO') {
+              requiredQuantity -= (mod.fator_consumo || 1) * item.quantity;
+            }
+          }
+        }
+        if (requiredQuantity > 0) {
+          await connection.query(
+            'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque + ? WHERE id = ?',
+            [requiredQuantity, ing.ingrediente_id]
+          );
+          await connection.query(
+            'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "ENTRADA", ?, ? , NOW())',
+            [ing.ingrediente_id, requiredQuantity, `order_item_cancel:${itemId}`]
+          );
+        }
+      }
+      for (const mod of modifiers) {
+        if (mod.ingrediente_id && !ingredientsRows.some(ing => ing.ingrediente_id === mod.ingrediente_id)) {
+          if (mod.tipo === 'ADICAO') {
+            const requiredQuantity = (mod.fator_consumo || 1) * item.quantity;
+            await connection.query(
+              'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque + ? WHERE id = ?',
+              [requiredQuantity, mod.ingrediente_id]
+            );
+            await connection.query(
+              'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "ENTRADA", ?, ? , NOW())',
+              [mod.ingrediente_id, requiredQuantity, `order_item_cancel:${itemId}`]
+            );
+          }
+        }
+      }
+    }
 
     await connection.commit();
     res.status(204).send();
