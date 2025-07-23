@@ -5,7 +5,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import { useEffect } from 'react';
-import api from '../api';
+import api from '../services/api';
 
 const AdminPedidos = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -20,9 +20,11 @@ const AdminPedidos = () => {
       try {
         setLoading(true);
         const response = await api.get('/api/orders');
+        console.log('Resposta da API /api/orders:', response.data);
         setPedidos(response.data);
       } catch (err) {
         setError(err);
+        console.error('Erro ao buscar pedidos:', err);
       } finally {
         setLoading(false);
       }
@@ -72,7 +74,10 @@ const AdminPedidos = () => {
 
   if (loading) return <p>Carregando pedidos...</p>;
   if (error) return <p>Erro ao carregar pedidos: {error.message}</p>;
-  if (!pedidos.length) return <p>Nenhum pedido encontrado.</p>;
+  if (!pedidos.length) {
+    console.log('Nenhum pedido encontrado. Estado pedidos:', pedidos);
+    return <p>Nenhum pedido encontrado.</p>;
+  }
 
   return (
     <div className="container mx-auto p-4">

@@ -15,6 +15,7 @@ import GarcomPedido from './pages/GarcomPedido';
 import GarcomComissao from './pages/GarcomComissao';
 import Cardapio from './pages/Cardapio';
 import Cozinha from './pages/Cozinha';
+import AdminPedidos from './pages/AdminPedidos';
 import api from './services/api';
 import jwt_decode from 'jwt-decode';
 
@@ -67,6 +68,7 @@ function App() {
           <Route path="/admin/reports" element={<PrivateRoute role="admin"><AdminReports /></PrivateRoute>} />
           <Route path="/admin/stock-movements" element={<PrivateRoute role="admin"><AdminStockMovements /></PrivateRoute>} />
           <Route path="/admin/ingredients" element={<PrivateRoute role="admin"><AdminIngredients /></PrivateRoute>} />
+          <Route path="/admin/pedidos" element={<PrivateRoute role="admin"><AdminPedidos /></PrivateRoute>} />
           <Route path="/garcom/mesas" element={<PrivateRoute role="waiter"><GarcomMesas /></PrivateRoute>} />
           <Route path="/garcom/pedido/:pedidoId?" element={<PrivateRoute role="waiter"><GarcomPedido /></PrivateRoute>} />
           <Route path="/garcom/comissao" element={<PrivateRoute role="waiter"><GarcomComissao /></PrivateRoute>} />
