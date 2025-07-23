@@ -1,6 +1,11 @@
 // frontend/src/pages/AdminGarcons.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 export default function AdminGarcons() {
   const [garcons, setGarcons] = useState([]);
@@ -12,6 +17,7 @@ export default function AdminGarcons() {
     branch_id: '',
   });
   const [editingId, setEditingId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     fetchGarcons();
@@ -52,6 +58,7 @@ export default function AdminGarcons() {
       setForm({ username: '', email: '', password: '', branch_id: '' });
       setEditingId(null);
       fetchGarcons();
+      closeModal();
     } catch (err) {
       console.error('Erro ao salvar garçom:', err);
       alert('Não foi possível salvar o garçom.');
@@ -66,6 +73,7 @@ export default function AdminGarcons() {
       password: '',
       branch_id: String(g.branch_id),
     });
+    setModalOpen(true);
   }
 
   async function handleDelete(id) {
@@ -79,92 +87,122 @@ export default function AdminGarcons() {
     }
   }
 
+  const openAddModal = () => {
+    setEditingId(null);
+    setForm({ username: '', email: '', password: '', branch_id: '' });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (g) => {
+    setEditingId(g.id);
+    setForm({
+      username: g.username,
+      email: g.email,
+      password: '',
+      branch_id: String(g.branch_id),
+    });
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
+
   return (
-    <div className="p-4">
+    <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Garçons</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
-      >
-        <input
-          name="username"
-          value={form.username}
-          onChange={handleChange}
-          placeholder="Usuário (login)"
-          required
-          className="border p-2"
-        />
-        <input
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="Email"
-          required
-          className="border p-2"
-        />
-        <input
-          name="password"
-          type="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder={editingId ? 'Nova senha (opcional)' : 'Senha'}
-          required={!editingId}
-          className="border p-2"
-        />
-        <select
-          name="branch_id"
-          value={form.branch_id}
-          onChange={handleChange}
-          required
-          className="border p-2"
-        >
-          <option value="">Selecione a filial</option>
-          {branches.map(b => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+      <div className="mb-8 p-4 border rounded shadow-sm">
+        <Button variant="contained" color="primary" onClick={openAddModal}>
+          Adicionar Garçom
+        </Button>
+      </div>
 
-        <button
-          type="submit"
-          className="col-span-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
-        >
-          {editingId ? 'Atualizar Garçom' : 'Cadastrar Garçom'}
-        </button>
-      </form>
+      <Dialog open={modalOpen} onClose={closeModal} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingId ? 'Editar Garçom' : 'Adicionar Garçom'}</DialogTitle>
+        <DialogContent>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">Nome de Usuário:</label>
+            <input
+              type="text"
+              id="username"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={form.username}
+              name="username"
+              onChange={handleChange}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">Email:</label>
+            <input
+              type="email"
+              id="email"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={form.email}
+              name="email"
+              onChange={handleChange}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">Senha:</label>
+            <input
+              type="password"
+              id="password"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={form.password}
+              name="password"
+              onChange={handleChange}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="branch_id">Filial:</label>
+            <select
+              id="branch_id"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              value={form.branch_id}
+              name="branch_id"
+              onChange={handleChange}
+            >
+              <option value="">Selecione</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSubmit} color="primary" variant="contained">
+            {editingId ? 'Atualizar Garçom' : 'Adicionar Garçom'}
+          </Button>
+          <Button onClick={closeModal} color="secondary" variant="outlined">
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
+      <h2 className="text-xl font-semibold mb-2">Garçons Cadastrados</h2>
       <div className="overflow-x-auto w-full">
-        <table className="w-full bg-white shadow rounded text-xs sm:text-sm">
-          <thead className="bg-gray-100">
+        <table className="min-w-full bg-white border border-gray-200 text-xs sm:text-sm">
+          <thead>
             <tr>
-              <th className="p-2 text-left">Usuário</th>
-              <th className="p-2 text-left">Email</th>
-              <th className="p-2 text-left">Filial</th>
-              <th className="p-2 text-center">Ações</th>
+              <th className="py-2 px-4 border-b">ID</th>
+              <th className="py-2 px-4 border-b">Usuário</th>
+              <th className="py-2 px-4 border-b">Email</th>
+              <th className="py-2 px-4 border-b">Filial</th>
+              <th className="py-2 px-4 border-b">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {garcons.map(g => (
-              <tr key={g.id} className="border-b">
-                <td className="p-2">{g.username}</td>
-                <td className="p-2">{g.email}</td>
-                <td className="p-2">{g.branch_id}</td>
-                <td className="p-2 text-center space-x-2">
-                  <button
-                    onClick={() => handleEdit(g)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    onClick={() => handleDelete(g.id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    🗑
-                  </button>
+            {garcons.map((g) => (
+              <tr key={g.id}>
+                <td className="py-2 px-4 border-b text-center">{g.id}</td>
+                <td className="py-2 px-4 border-b">{g.username}</td>
+                <td className="py-2 px-4 border-b">{g.email}</td>
+                <td className="py-2 px-4 border-b">{branches.find(b => b.id === g.branch_id)?.name || '-'}</td>
+                <td className="py-2 px-4 border-b text-center">
+                  <Button onClick={() => openEditModal(g)} color="warning" variant="contained" size="small" style={{ marginRight: 8 }}>
+                    Editar
+                  </Button>
                 </td>
               </tr>
             ))}

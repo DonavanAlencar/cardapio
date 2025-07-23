@@ -3,53 +3,50 @@ const pool = require('../config/db');
 const auth = require('../middleware/authMiddleware');
 const router = express.Router();
 
-// Middleware para verificar se o usuário é admin ou gerente
-const authorizeAdminOrManager = (req, res, next) => {
-  if (req.user.role !== 'admin' && req.user.role !== 'gerente') {
-    return res.status(403).json({ message: 'Acesso negado. Você não tem permissão para acessar relatórios.' });
-  }
-  next();
-};
-
-// Relatório de Vendas do Dia
-router.get('/daily-sales', auth, authorizeAdminOrManager, async (req, res) => {
+// Vendas do dia
+router.get('/daily-sales', auth, async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT
-         DATE(p.paid_at) as sale_date,
-         pm.name as payment_method,
-         SUM(p.amount) as total_amount
-       FROM payments p
-       JOIN payment_methods pm ON p.payment_method_id = pm.id
-       WHERE DATE(p.paid_at) = CURDATE()
-       GROUP BY DATE(p.paid_at), pm.name
-       ORDER BY sale_date DESC, pm.name`
+      `SELECT DATE(created_at) as dia, SUM(total_amount) as total_vendas, COUNT(*) as pedidos
+       FROM orders
+       WHERE DATE(created_at) = CURDATE() AND status = 'closed'
+       GROUP BY dia`
     );
-    res.json(rows);
+    res.json(rows[0] || { dia: new Date().toISOString().slice(0,10), total_vendas: 0, pedidos: 0 });
   } catch (err) {
-    console.error('Erro ao buscar relatório de vendas diárias:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
+    res.status(500).json({ message: 'Erro ao buscar vendas do dia.' });
   }
 });
 
-// Relatório de Consumo de Insumos (simplificado para MVP)
-router.get('/ingredient-consumption', auth, authorizeAdminOrManager, async (req, res) => {
+// Consumo de insumos
+router.get('/ingredient-consumption', auth, async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT
-         i.nome as ingredient_name,
-         i.unidade_medida,
-         SUM(em.quantidade) as total_consumed
-       FROM estoque_movimentos em
-       JOIN ingredientes i ON em.ingrediente_id = i.id
-       WHERE em.tipo_movimento = 'SAIDA' AND DATE(em.ocorrido_em) = CURDATE()
-       GROUP BY i.nome, i.unidade_medida
-       ORDER BY total_consumed DESC`
+      `SELECT i.nome, SUM(oi.quantity * pi.quantidade) as total_consumido, i.unidade_medida
+       FROM order_items oi
+       JOIN produto_ingredientes pi ON oi.product_id = pi.product_id
+       JOIN ingredientes i ON pi.ingrediente_id = i.id
+       JOIN orders o ON oi.order_id = o.id
+       WHERE o.status = 'closed' AND DATE(o.created_at) = CURDATE()
+       GROUP BY i.id`
     );
     res.json(rows);
   } catch (err) {
-    console.error('Erro ao buscar relatório de consumo de insumos:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
+    res.status(500).json({ message: 'Erro ao buscar consumo de insumos.' });
+  }
+});
+
+// Alertas de estoque baixo
+router.get('/low-stock', auth, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, nome, quantidade_estoque, quantidade_minima, unidade_medida
+       FROM ingredientes
+       WHERE quantidade_estoque <= quantidade_minima`
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao buscar alertas de estoque.' });
   }
 });
 

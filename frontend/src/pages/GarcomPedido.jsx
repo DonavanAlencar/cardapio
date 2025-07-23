@@ -20,12 +20,16 @@ export default function GarcomPedido() {
   const [modifiers, setModifiers] = useState([]);
   const [selectedModifiers, setSelectedModifiers] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [kitchenStatus, setKitchenStatus] = useState({});
 
   useEffect(() => {
     fetchProducts();
     fetchPaymentMethods();
     if (pedidoId) {
       fetchOrder(pedidoId);
+      fetchKitchenStatus();
+      const interval = setInterval(fetchKitchenStatus, 5000);
+      return () => clearInterval(interval);
     }
   }, [pedidoId]);
 
@@ -61,6 +65,23 @@ export default function GarcomPedido() {
       console.error('Erro ao buscar pedido:', err);
       setError('Erro ao carregar pedido.');
       setLoading(false);
+    }
+  };
+
+  const fetchKitchenStatus = async () => {
+    if (!pedidoId) return;
+    try {
+      const res = await api.get('/api/kitchen/tickets');
+      // Agrupar por order_item_id
+      const statusMap = {};
+      res.data.forEach(item => {
+        if (item.order_id === Number(pedidoId)) {
+          statusMap[item.order_item_id] = item.preparation_status;
+        }
+      });
+      setKitchenStatus(statusMap);
+    } catch (err) {
+      setKitchenStatus({});
     }
   };
 
@@ -160,6 +181,13 @@ export default function GarcomPedido() {
     }
   };
 
+  const statusLabels = {
+    pending: 'Pendente',
+    preparing: 'Em Preparo',
+    done: 'Pronto',
+    served: 'Entregue',
+  };
+
   if (loading) return <div className="p-4">Carregando pedido...</div>;
   if (error) return <div className="p-4 text-red-500">Erro: {error}</div>;
   if (!order) return <div className="p-4">Nenhum pedido selecionado ou encontrado.</div>;
@@ -223,6 +251,11 @@ export default function GarcomPedido() {
             {order.items.map((item) => (
               <li key={item.id} className="mb-2">
                 {item.quantity}x {item.product_name} – R$ {(item.total_price).toFixed(2)}
+                {kitchenStatus[item.id] && (
+                  <span className="ml-2 px-2 py-1 rounded text-xs bg-gray-200">
+                    Status: {statusLabels[kitchenStatus[item.id]]}
+                  </span>
+                )}
                 <div className="inline-flex ml-4">
                   <button
                     onClick={() => handleUpdateItemQuantity(item.id, item.quantity - 1)}
