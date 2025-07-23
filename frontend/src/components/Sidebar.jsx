@@ -30,19 +30,21 @@ const fullMenu = [
   { label: "Mesas", icon: <Store />, path: "/garcom/mesas", roles: ["waiter"] },
   { label: "Pedidos", icon: <ShoppingCart />, path: "/garcom/pedido", roles: ["waiter"] },
   { label: "Comissão", icon: <Assessment />, path: "/garcom/comissao", roles: ["waiter"] },
+  { label: "Cozinha", icon: <Kitchen />, path: "/cozinha", roles: ["admin", "cozinha"] },
   {
     label: "Administração",
     icon: <ListAlt />,
     roles: ["admin"],
     children: [
       { label: "Mesas", icon: <Store />, path: "/admin/mesas", roles: ["admin"] },
+      { label: "Pedidos (Admin)", icon: <ShoppingCart />, path: "/admin/pedidos", roles: ["admin"] },
       { label: "Produtos", icon: <ShoppingCart />, path: "/admin/produtos", roles: ["admin"] },
       { label: "Categorias de Produtos", icon: <Category />, path: "/admin/product-categories", roles: ["admin"] },
       { label: "Modificadores de Produtos", icon: <LocalOffer />, path: "/admin/product-modifiers", roles: ["admin"] },
       { label: "Ingredientes", icon: <Kitchen />, path: "/admin/ingredients", roles: ["admin"] },
       { label: "Relatórios", icon: <Assessment />, path: "/admin/reports", roles: ["admin"] },
       { label: "Movimentação de Estoque", icon: <EventNote />, path: "/admin/stock-movements", roles: ["admin"] },
-      { label: "Comissão", icon: <Assessment />, path: "/admin/comissao", roles: ["admin"] },
+      { label: "Configuração de Comissão", icon: <Assessment />, path: "/admin/comissao", roles: ["admin"] },
       { label: "Garçons", icon: <Group />, path: "/admin/garcons", roles: ["admin"] },
     ]
   },

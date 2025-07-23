@@ -14,6 +14,7 @@ import GarcomMesas from './pages/GarcomMesas';
 import GarcomPedido from './pages/GarcomPedido';
 import GarcomComissao from './pages/GarcomComissao';
 import Cardapio from './pages/Cardapio';
+import Cozinha from './pages/Cozinha';
 import api from './services/api';
 import jwt_decode from 'jwt-decode';
 
@@ -32,11 +33,12 @@ function App() {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
-  const PrivateRoute = ({ children, role }) => {
+  const PrivateRoute = ({ children, role, roles }) => {
     const currentToken = localStorage.getItem('token');
     if (!currentToken) return <Navigate to="/login" />;
     const user = jwt_decode(currentToken);
     if (role && user.role !== role) return <Navigate to="/login" />;
+    if (roles && !roles.includes(user.role)) return <Navigate to="/login" />;
     return children;
   };
 
@@ -69,6 +71,7 @@ function App() {
           <Route path="/garcom/pedido/:pedidoId?" element={<PrivateRoute role="waiter"><GarcomPedido /></PrivateRoute>} />
           <Route path="/garcom/comissao" element={<PrivateRoute role="waiter"><GarcomComissao /></PrivateRoute>} />
           <Route path="/cardapio" element={<Cardapio />} />
+          <Route path="/cozinha" element={<PrivateRoute roles={['admin','cozinha']}><Cozinha /></PrivateRoute>} />
           <Route path="/new-features" element={<NewFeaturesPage />} /> {/* New route for showcasing components */}
         </Route>
         <Route path="*" element={<Navigate to="/login" />} />
