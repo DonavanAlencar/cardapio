@@ -13,8 +13,11 @@ const authorizeWaiterAdminOrManager = (req, res, next) => {
 
 // Rota para listar todos os pedidos
 router.get('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
+  console.log('Requisição para /orders recebida');
   try {
+    console.log('Executando query para buscar pedidos...');
     const [rows] = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
+    console.log(`Query executada com sucesso. ${rows.length} pedidos encontrados.`);
     res.json(rows);
   } catch (err) {
     console.error('Erro ao buscar pedidos:', err);
