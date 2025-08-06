@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cardapio-backend-service
+  namespace: cardapio
+  labels:
+    app: cardapio-backend
+spec:
+  selector:
+    app: cardapio-backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 4000
+  type: ClusterIP 
