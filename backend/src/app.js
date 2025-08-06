@@ -18,6 +18,7 @@ const stockMovementsRoutes = require('./routes/stockMovements');
 const paymentsRoutes = require('./routes/payments');
 const paymentMethodsRoutes = require('./routes/paymentMethods');
 const kitchenRoutes = require('./routes/kitchen');
+const customersRoutes = require('./routes/customers');
 //const debugStartup = require('debug')('app:startup');
 //const debugDB      = require('debug')('app:db');
 
@@ -42,6 +43,7 @@ app.use('/api/stock-movements', stockMovementsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/payment-methods', paymentMethodsRoutes);
 app.use('/api/kitchen', kitchenRoutes);
+app.use('/api/customers', customersRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

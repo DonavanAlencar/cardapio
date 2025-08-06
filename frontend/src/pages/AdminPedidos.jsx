@@ -4,6 +4,19 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import FormHelperText from '@mui/material/FormHelperText';
+import Autocomplete from '@mui/material/Autocomplete';
+import Chip from '@mui/material/Chip';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { useEffect } from 'react';
 import api from '../services/api';
 
@@ -13,9 +26,35 @@ const AdminPedidos = () => {
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPedido, setEditingPedido] = useState(null);
-  const [pedidoForm, setPedidoForm] = useState({ customer_id: '', table_id: '', waiter_session_id: '' });
+  const [pedidoForm, setPedidoForm] = useState({ 
+    customer_id: '', 
+    table_id: '', 
+    waiter_session_id: '',
+    items: []
+  });
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
+  
+  // Estados para o modal
+  const [customers, setCustomers] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedModifiers, setSelectedModifiers] = useState([]);
+  const [modifiers, setModifiers] = useState([]);
+  const [quantity, setQuantity] = useState(1);
+  const [totalAmount, setTotalAmount] = useState(0);
+  
+  // Estados para criação de cliente
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ full_name: '', email: '', phone: '' });
+  
+  // Estados para validação
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchPedidos = async (isInitialLoad = false) => {
@@ -52,10 +91,40 @@ const AdminPedidos = () => {
     };
   }, [autoRefresh]);
 
-  const openAddModal = () => {
+  // Carregar dados para o modal
+  const loadModalData = async () => {
+    try {
+      const [customersRes, tablesRes, categoriesRes, productsRes] = await Promise.all([
+        api.get('/api/customers'),
+        api.get('/api/tables'),
+        api.get('/api/product-categories'),
+        api.get('/api/products')
+      ]);
+      
+      setCustomers(customersRes.data);
+      setTables(tablesRes.data);
+      setCategories(categoriesRes.data);
+      setProducts(productsRes.data);
+    } catch (err) {
+      console.error('Erro ao carregar dados do modal:', err);
+    }
+  };
+
+  const openAddModal = async () => {
     setEditingPedido(null);
-    setPedidoForm({ customer_id: '', table_id: '', waiter_session_id: '' });
+    setPedidoForm({ 
+      customer_id: '', 
+      table_id: '', 
+      waiter_session_id: '',
+      items: []
+    });
+    setSelectedCategory('');
+    setSelectedProduct(null);
+    setSelectedModifiers([]);
+    setQuantity(1);
+    setTotalAmount(0);
     setModalOpen(true);
+    await loadModalData();
   };
 
   const openEditModal = (pedido) => {
@@ -70,6 +139,16 @@ const AdminPedidos = () => {
 
   const closeModal = () => {
     setModalOpen(false);
+    setEditingPedido(null);
+    setPedidoForm({ customer_id: '', table_id: '', waiter_session_id: '', items: [] });
+    setSelectedCategory('');
+    setSelectedProduct(null);
+    setSelectedModifiers([]);
+    setQuantity(1);
+    setErrors({});
+    setIsSubmitting(false);
+    setShowCustomerForm(false);
+    setNewCustomer({ full_name: '', email: '', phone: '' });
   };
 
   const handlePedidoFormChange = (e) => {
@@ -77,16 +156,157 @@ const AdminPedidos = () => {
     setPedidoForm(prev => ({ ...prev, [name]: value }));
   };
 
+  // Filtrar produtos por categoria
+  const handleCategoryChange = (event) => {
+    const categoryId = event.target.value;
+    setSelectedCategory(categoryId);
+    if (categoryId) {
+      const filtered = products.filter(p => p.category_id == categoryId && p.status === 'active');
+      setFilteredProducts(filtered);
+    } else {
+      setFilteredProducts([]);
+    }
+    setSelectedProduct(null);
+  };
+
+  // Carregar modificadores do produto
+  const handleProductChange = async (product) => {
+    setSelectedProduct(product);
+    setSelectedModifiers([]);
+    if (product) {
+      try {
+        const response = await api.get(`/api/product-modifiers?product_id=${product.id}`);
+        setModifiers(response.data);
+      } catch (err) {
+        setModifiers([]);
+      }
+    } else {
+      setModifiers([]);
+    }
+  };
+
+  // Adicionar item ao pedido
+  const addItemToOrder = () => {
+    if (!selectedProduct) return;
+
+    const item = {
+      product_id: selectedProduct.id,
+      quantity: quantity,
+      modifier_ids: selectedModifiers,
+      product_name: selectedProduct.name,
+      unit_price: selectedProduct.price || 0,
+      total_price: (selectedProduct.price || 0) * quantity
+    };
+
+    setPedidoForm(prev => ({
+      ...prev,
+      items: [...prev.items, item]
+    }));
+
+    // Limpar seleções
+    setSelectedProduct(null);
+    setSelectedModifiers([]);
+    setQuantity(1);
+    setSelectedCategory('');
+    setFilteredProducts([]);
+  };
+
+  // Remover item do pedido
+  const removeItemFromOrder = (index) => {
+    setPedidoForm(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Calcular total do pedido
+  const calculateTotal = () => {
+    return pedidoForm.items.reduce((total, item) => total + item.total_price, 0);
+  };
+
+  // Validar formulário
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!pedidoForm.customer_id) {
+      newErrors.customer_id = 'Cliente é obrigatório';
+    }
+    
+    if (!pedidoForm.table_id) {
+      newErrors.table_id = 'Mesa é obrigatória';
+    }
+    
+    if (pedidoForm.items.length === 0) {
+      newErrors.items = 'Adicione pelo menos um item ao pedido';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Criar novo cliente
+  const createCustomer = async () => {
+    try {
+      const response = await api.post('/api/customers', newCustomer);
+      const createdCustomer = response.data;
+      
+      // Adicionar o novo cliente à lista
+      setCustomers(prev => [...prev, createdCustomer]);
+      
+      // Selecionar o novo cliente automaticamente
+      setPedidoForm(prev => ({ ...prev, customer_id: createdCustomer.id }));
+      
+      // Limpar formulário e fechar
+      setNewCustomer({ full_name: '', email: '', phone: '' });
+      setShowCustomerForm(false);
+      
+      alert('Cliente criado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao criar cliente:', err);
+      alert('Erro ao criar cliente: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   const handleSubmitPedido = async (e) => {
     e.preventDefault();
-    if (editingPedido) {
-      // Atualizar pedido (implementar se necessário)
-    } else {
-      // Adicionar novo pedido
-      await api.post('/api/orders', pedidoForm);
+    
+    if (!validateForm()) {
+      return;
     }
-    closeModal();
-    // Atualizar lista de pedidos (implementar fetchPedidos se necessário)
+    
+    setIsSubmitting(true);
+    
+    try {
+      if (editingPedido) {
+        // Atualizar pedido (implementar se necessário)
+        console.log('Atualizar pedido:', editingPedido.id);
+      } else {
+        // Adicionar novo pedido
+        const orderData = {
+          customer_id: pedidoForm.customer_id,
+          table_id: pedidoForm.table_id,
+          waiter_session_id: 1, // Temporário
+          items: pedidoForm.items.map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            modifiers: item.modifiers || []
+          }))
+        };
+        
+        await api.post('/api/orders', orderData);
+        alert('Pedido criado com sucesso!');
+      }
+      closeModal();
+      // Recarregar lista de pedidos
+      fetchPedidos(false);
+    } catch (err) {
+      console.error('Erro ao salvar pedido:', err);
+      alert('Erro ao salvar pedido: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) return <p>Carregando pedidos...</p>;
@@ -129,49 +349,274 @@ const AdminPedidos = () => {
         </div>
       </div>
 
-      <Dialog open={modalOpen} onClose={closeModal} maxWidth="sm" fullWidth>
+      <Dialog open={modalOpen} onClose={closeModal} maxWidth="md" fullWidth>
         <DialogTitle>{editingPedido ? 'Editar Pedido' : 'Adicionar Pedido'}</DialogTitle>
         <form onSubmit={handleSubmitPedido}>
           <DialogContent>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="customer_id">Cliente:</label>
-              <input
-                type="text"
-                id="customer_id"
-                name="customer_id"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={pedidoForm.customer_id}
-                onChange={handlePedidoFormChange}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Cliente */}
+              <div>
+                <Autocomplete
+                  options={customers}
+                  getOptionLabel={(option) => `${option.full_name}${option.email ? ` (${option.email})` : ''}`}
+                  value={customers.find(c => c.id == pedidoForm.customer_id) || null}
+                  onChange={(event, newValue) => {
+                    setPedidoForm(prev => ({ ...prev, customer_id: newValue?.id || '' }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Cliente"
+                      placeholder="Selecione ou digite para buscar..."
+                      error={!!errors.customer_id}
+                      helperText={errors.customer_id}
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props}>
+                      <div>
+                        <Typography variant="body1">{option.full_name}</Typography>
+                        {option.email && (
+                          <Typography variant="caption" color="textSecondary">
+                            {option.email}
+                          </Typography>
+                        )}
+                      </div>
+                    </Box>
+                  )}
+                />
+                <Button
+                  size="small"
+                  onClick={() => setShowCustomerForm(!showCustomerForm)}
+                  className="mt-2"
+                >
+                  {showCustomerForm ? 'Cancelar' : '+ Novo Cliente'}
+                </Button>
+              </div>
+
+              {/* Formulário de Novo Cliente */}
+              {showCustomerForm && (
+                <div className="col-span-2 p-4 border rounded bg-gray-50">
+                  <Typography variant="subtitle1" className="mb-3">Novo Cliente</Typography>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <TextField
+                      label="Nome Completo"
+                      value={newCustomer.full_name}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, full_name: e.target.value }))}
+                      required
+                      fullWidth
+                    />
+                    <TextField
+                      label="Email"
+                      type="email"
+                      value={newCustomer.email}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Telefone"
+                      value={newCustomer.phone}
+                      onChange={(e) => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                      fullWidth
+                    />
+                  </div>
+                  <div className="mt-3">
+                    <Button
+                      variant="contained"
+                      onClick={createCustomer}
+                      disabled={!newCustomer.full_name}
+                      size="small"
+                    >
+                      Criar Cliente
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mesa */}
+              <FormControl fullWidth error={!!errors.table_id}>
+                <InputLabel>Mesa</InputLabel>
+                <Select
+                  value={pedidoForm.table_id}
+                  onChange={handlePedidoFormChange}
+                  name="table_id"
+                  label="Mesa"
+                >
+                  <MenuItem value="">
+                    <em>Selecione uma mesa</em>
+                  </MenuItem>
+                  {tables.map((table) => (
+                    <MenuItem key={table.id} value={table.id}>
+                      {table.table_number} (Capacidade: {table.capacity})
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.table_id && (
+                  <FormHelperText>{errors.table_id}</FormHelperText>
+                )}
+              </FormControl>
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="table_id">Mesa:</label>
-              <input
-                type="text"
-                id="table_id"
-                name="table_id"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={pedidoForm.table_id}
-                onChange={handlePedidoFormChange}
-              />
+
+            {/* Seleção de Produtos */}
+            <Typography variant="h6" className="mb-4">Produtos do Pedido</Typography>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {/* Categoria */}
+              <FormControl fullWidth>
+                <InputLabel>Categoria</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  onChange={handleCategoryChange}
+                  label="Categoria"
+                >
+                  <MenuItem value="">
+                    <em>Selecione uma categoria</em>
+                  </MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Produto */}
+              <FormControl fullWidth>
+                <InputLabel>Produto</InputLabel>
+                <Select
+                  value={selectedProduct?.id || ''}
+                  onChange={(e) => {
+                    const product = filteredProducts.find(p => p.id == e.target.value);
+                    handleProductChange(product);
+                  }}
+                  label="Produto"
+                  disabled={!selectedCategory}
+                >
+                  <MenuItem value="">
+                    <em>Selecione um produto</em>
+                  </MenuItem>
+                  {filteredProducts.map((product) => (
+                    <MenuItem key={product.id} value={product.id}>
+                      {product.name} - R$ {product.price || 0}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Quantidade */}
+              <Box display="flex" alignItems="center" gap={1}>
+                <IconButton 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                >
+                  <RemoveIcon />
+                </IconButton>
+                <TextField
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  inputProps={{ min: 1 }}
+                  sx={{ width: 80 }}
+                />
+                <IconButton 
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Box>
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="waiter_session_id">Sessão do Garçom:</label>
-              <input
-                type="text"
-                id="waiter_session_id"
-                name="waiter_session_id"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={pedidoForm.waiter_session_id}
-                onChange={handlePedidoFormChange}
-              />
-            </div>
+
+            {/* Modificadores */}
+            {modifiers.length > 0 && (
+              <div className="mb-4">
+                <Typography variant="subtitle1" className="mb-2">Modificadores:</Typography>
+                <div className="flex flex-wrap gap-2">
+                  {modifiers.map((modifier) => (
+                    <Chip
+                      key={modifier.id}
+                      label={`${modifier.nome} (${modifier.ajuste_preco >= 0 ? '+' : ''}R$ ${modifier.ajuste_preco})`}
+                      onClick={() => {
+                        setSelectedModifiers(prev => 
+                          prev.includes(modifier.id)
+                            ? prev.filter(id => id !== modifier.id)
+                            : [...prev, modifier.id]
+                        );
+                      }}
+                      color={selectedModifiers.includes(modifier.id) ? "primary" : "default"}
+                      variant={selectedModifiers.includes(modifier.id) ? "filled" : "outlined"}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Botão Adicionar Item */}
+            <Button
+              variant="outlined"
+              onClick={addItemToOrder}
+              disabled={!selectedProduct}
+              className="mb-4"
+            >
+              Adicionar ao Pedido
+            </Button>
+
+            {/* Lista de Itens do Pedido */}
+            {pedidoForm.items.length > 0 && (
+              <div className="mb-4">
+                <Typography variant="subtitle1" className="mb-2">Itens do Pedido:</Typography>
+                <div className="space-y-2">
+                  {pedidoForm.items.map((item, index) => (
+                    <Box key={index} className="flex justify-between items-center p-3 border rounded bg-gray-50">
+                      <div className="flex-1">
+                        <Typography variant="body1" className="font-medium">
+                          {item.product_name}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          Qtd: {item.quantity} x R$ {item.unit_price.toFixed(2)}
+                        </Typography>
+                        {item.modifiers && item.modifiers.length > 0 && (
+                          <div className="mt-1">
+                            <Typography variant="caption" color="textSecondary">
+                              Modificadores: {item.modifiers.join(', ')}
+                            </Typography>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Typography variant="body1" className="font-semibold text-green-600">
+                          R$ {item.total_price.toFixed(2)}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => removeItemFromOrder(index)}
+                          color="error"
+                        >
+                          <RemoveIcon />
+                        </IconButton>
+                      </div>
+                    </Box>
+                  ))}
+                </div>
+                
+                {/* Total */}
+                <Box className="mt-4 p-3 bg-gray-100 rounded">
+                  <Typography variant="h6" align="right">
+                    Total: R$ {calculateTotal().toFixed(2)}
+                  </Typography>
+                </Box>
+              </div>
+            )}
           </DialogContent>
           <DialogActions>
-            <Button type="submit" color="primary" variant="contained">
-              {editingPedido ? 'Atualizar Pedido' : 'Adicionar Pedido'}
+            <Button 
+              type="submit" 
+              color="primary" 
+              variant="contained" 
+              disabled={pedidoForm.items.length === 0 || isSubmitting}
+            >
+              {isSubmitting ? 'Salvando...' : (editingPedido ? 'Atualizar Pedido' : 'Criar Pedido')}
             </Button>
-            <Button onClick={closeModal} color="secondary" variant="outlined">
+            <Button onClick={closeModal} color="secondary" variant="outlined" disabled={isSubmitting}>
               Cancelar
             </Button>
           </DialogActions>
@@ -212,7 +657,10 @@ const AdminPedidos = () => {
                   {pedido.id}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {pedido.customer_id || '-'}
+                  {(() => {
+                    const customer = customers.find(c => c.id == pedido.customer_id);
+                    return customer ? customer.full_name : '-';
+                  })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {pedido.table_id || '-'}
