@@ -29,12 +29,20 @@ if ! kubectl cluster-info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Verificar se o MySQL está rodando
+# Verificar se o MySQL está rodando no namespace cardapio
 echo "🔍 Verificando MySQL..."
-if ! kubectl get pod mysql-0 > /dev/null 2>&1; then
-    echo "❌ Pod mysql-0 não encontrado"
-    echo "Certifique-se que o MySQL está implantado"
-    exit 1
+if ! kubectl get pod mysql-0 -n cardapio > /dev/null 2>&1; then
+    echo "❌ Pod mysql-0 não encontrado no namespace cardapio"
+    echo "Verificando em todos os namespaces..."
+    MYSQL_POD=$(kubectl get pods --all-namespaces | grep mysql | head -1)
+    if [ -n "$MYSQL_POD" ]; then
+        echo "✅ MySQL encontrado: ${MYSQL_POD}"
+        echo "⚠️  Ajuste a configuração se necessário"
+    else
+        echo "❌ MySQL não encontrado em nenhum namespace"
+        echo "Certifique-se que o MySQL está implantado"
+        exit 1
+    fi
 fi
 
 echo "✅ Pré-requisitos verificados!"
