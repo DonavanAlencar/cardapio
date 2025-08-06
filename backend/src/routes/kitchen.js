@@ -4,7 +4,7 @@ const auth = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // Listar tickets e itens por status (para cozinha e garçom)
-router.get('/tickets', auth, async (req, res) => {
+router.get('/tickets', auth(), async (req, res) => {
   try {
     // Tickets com itens e status
     const [tickets] = await pool.query(

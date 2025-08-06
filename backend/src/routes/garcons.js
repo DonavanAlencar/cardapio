@@ -134,4 +134,80 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Calcular comissão de um garçom específico
+router.get('/:id/comissao', auth('waiter'), async (req, res) => {
+  const { id } = req.params;
+  
+  // Verificar se o usuário está tentando acessar sua própria comissão
+  // ou se é um admin
+  if (req.user.role !== 'admin' && req.user.id != id) {
+    return res.status(403).json({ message: 'Acesso negado' });
+  }
+  
+  try {
+    // Garantir que a tabela de configurações existe
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS configuracoes (
+        id bigint unsigned NOT NULL AUTO_INCREMENT,
+        percentual_comissao decimal(5,2) NOT NULL DEFAULT '10.00',
+        created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+      ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+    `);
+    
+    // Inserir configuração padrão se não existir
+    await pool.query(`
+      INSERT INTO configuracoes (id, percentual_comissao) 
+      VALUES (1, 10.00) 
+      ON DUPLICATE KEY UPDATE percentual_comissao = VALUES(percentual_comissao)
+    `);
+    
+    // Primeiro, obter o percentual de comissão das configurações
+    const [[config]] = await pool.query('SELECT percentual_comissao FROM configuracoes LIMIT 1');
+    const percentualComissao = config.percentual_comissao;
+    
+    // Buscar o employee_id do garçom
+    const [[employee]] = await pool.query(
+      'SELECT id FROM employees WHERE user_id = ? LIMIT 1',
+      [id]
+    );
+    
+    if (!employee) {
+      return res.status(404).json({ message: 'Garçom não encontrado' });
+    }
+    
+    // Calcular comissão baseada nos pedidos fechados (status = 'closed')
+    // que foram atendidos por este garçom através das waiter_sessions
+    const [orders] = await pool.query(`
+      SELECT 
+        o.id,
+        o.total_amount,
+        o.status,
+        o.created_at
+      FROM orders o
+      JOIN waiter_sessions ws ON o.waiter_session_id = ws.id
+      WHERE ws.employee_id = ? 
+        AND o.status = 'closed'
+        AND o.total_amount > 0
+    `, [employee.id]);
+    
+    // Calcular comissão total
+    const comissaoTotal = orders.reduce((total, order) => {
+      return total + (order.total_amount * percentualComissao / 100);
+    }, 0);
+    
+    res.json({ 
+      comissao: comissaoTotal,
+      percentual: percentualComissao,
+      pedidos_contabilizados: orders.length,
+      detalhes_pedidos: orders
+    });
+    
+  } catch (err) {
+    console.error('Erro ao calcular comissão:', err);
+    res.status(500).json({ message: 'Erro interno ao calcular comissão' });
+  }
+});
+
 module.exports = router;

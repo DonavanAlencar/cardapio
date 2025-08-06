@@ -94,9 +94,22 @@ router.post('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
           );
         }
 
-        await connection.query(
+        const [orderItemResult] = await connection.query(
           'INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)',
           [orderId, item.product_id, item.quantity, unitPrice, totalPrice]
+        );
+        const orderItemId = orderItemResult.insertId;
+
+        // Criar kitchen ticket e kitchen ticket item
+        const [kitchenTicketResult] = await connection.query(
+          'INSERT INTO kitchen_tickets (order_id, sent_at, status) VALUES (?, NOW(), "pending")',
+          [orderId]
+        );
+        const kitchenTicketId = kitchenTicketResult.insertId;
+
+        await connection.query(
+          'INSERT INTO kitchen_ticket_items (kitchen_ticket_id, order_item_id, preparation_status) VALUES (?, ?, "pending")',
+          [kitchenTicketId, orderItemId]
         );
       }
     }
@@ -165,6 +178,18 @@ router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, 
         [newItemId, modId]
       );
     }
+
+    // Criar kitchen ticket e kitchen ticket item para o novo item
+    const [kitchenTicketResult] = await connection.query(
+      'INSERT INTO kitchen_tickets (order_id, sent_at, status) VALUES (?, NOW(), "pending")',
+      [orderId]
+    );
+    const kitchenTicketId = kitchenTicketResult.insertId;
+
+    await connection.query(
+      'INSERT INTO kitchen_ticket_items (kitchen_ticket_id, order_item_id, preparation_status) VALUES (?, ?, "pending")',
+      [kitchenTicketId, newItemId]
+    );
 
     // Dedução de estoque para produto base
     const [ingredientsRows] = await connection.query(

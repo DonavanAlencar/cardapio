@@ -333,7 +333,7 @@ CREATE TABLE `kitchen_ticket_items` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `kitchen_ticket_id` bigint unsigned NOT NULL,
   `order_item_id` bigint unsigned NOT NULL,
-  `preparation_status` enum('pending','preparing','done') NOT NULL DEFAULT 'pending',
+  `preparation_status` enum('pending','preparing','done','served') NOT NULL DEFAULT 'pending',
   `prepared_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -342,7 +342,7 @@ CREATE TABLE `kitchen_ticket_items` (
   KEY `fk_kt_items_order_item` (`order_item_id`),
   CONSTRAINT `fk_kt_items_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`id`),
   CONSTRAINT `fk_kt_items_ticket` FOREIGN KEY (`kitchen_ticket_id`) REFERENCES `kitchen_tickets` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1024,6 +1024,33 @@ LOCK TABLES `waiter_sessions` WRITE;
 INSERT INTO `waiter_sessions` VALUES (1,1,1,'2025-07-10 16:54:52',NULL,'2025-07-10 16:54:52','2025-07-10 16:54:52');
 /*!40000 ALTER TABLE `waiter_sessions` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `configuracoes`
+--
+
+DROP TABLE IF EXISTS `configuracoes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `configuracoes` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `percentual_comissao` decimal(5,2) NOT NULL DEFAULT '10.00',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `configuracoes`
+--
+
+LOCK TABLES `configuracoes` WRITE;
+/*!40000 ALTER TABLE `configuracoes` DISABLE KEYS */;
+INSERT INTO `configuracoes` VALUES (1,10.00,'2025-07-10 16:54:52','2025-07-10 16:54:52');
+/*!40000 ALTER TABLE `configuracoes` ENABLE KEYS */;
+UNLOCK TABLES;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
