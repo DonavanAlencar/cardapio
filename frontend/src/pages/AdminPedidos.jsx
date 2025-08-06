@@ -30,6 +30,7 @@ const AdminPedidos = () => {
     customer_id: '', 
     table_id: '', 
     waiter_session_id: '',
+    status: 'pending',
     items: []
   });
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -55,6 +56,10 @@ const AdminPedidos = () => {
   // Estados para validação
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para filtros
+  const [statusFilter, setStatusFilter] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('');
 
   useEffect(() => {
     const fetchPedidos = async (isInitialLoad = false) => {
@@ -224,6 +229,14 @@ const AdminPedidos = () => {
     return pedidoForm.items.reduce((total, item) => total + item.total_price, 0);
   };
 
+  // Filtrar pedidos
+  const filteredPedidos = pedidos.filter(pedido => {
+    const matchesStatus = !statusFilter || pedido.status === statusFilter;
+    const matchesCustomer = !customerFilter || 
+      customers.find(c => c.id == pedido.customer_id)?.full_name.toLowerCase().includes(customerFilter.toLowerCase());
+    return matchesStatus && matchesCustomer;
+  });
+
   // Validar formulário
   const validateForm = () => {
     const newErrors = {};
@@ -242,6 +255,18 @@ const AdminPedidos = () => {
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Atualizar status do pedido
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await api.put(`/api/orders/${orderId}`, { status: newStatus });
+      alert('Status atualizado com sucesso!');
+      fetchPedidos(false);
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+      alert('Erro ao atualizar status: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   // Criar novo cliente
@@ -319,33 +344,95 @@ const AdminPedidos = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Pedidos</h1>
+      
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-blue-50 p-4 rounded-lg border">
+          <Typography variant="h6" color="primary">Total de Pedidos</Typography>
+          <Typography variant="h4" className="font-bold">{pedidos.length}</Typography>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg border">
+          <Typography variant="h6" color="warning.main">Pendentes</Typography>
+          <Typography variant="h4" className="font-bold text-yellow-600">
+            {pedidos.filter(p => p.status === 'pending').length}
+          </Typography>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg border">
+          <Typography variant="h6" color="success.main">Prontos</Typography>
+          <Typography variant="h4" className="font-bold text-green-600">
+            {pedidos.filter(p => p.status === 'ready').length}
+          </Typography>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg border">
+          <Typography variant="h6" color="secondary">Valor Total</Typography>
+          <Typography variant="h4" className="font-bold text-purple-600">
+            R$ {pedidos.reduce((total, p) => total + parseFloat(p.total_amount || 0), 0).toFixed(2)}
+          </Typography>
+        </div>
+      </div>
 
-      <div className="mb-8 p-4 border rounded shadow-sm flex justify-between items-center">
-        <Button variant="contained" color="primary" onClick={openAddModal}>
-          Adicionar Pedido
-        </Button>
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outlined" 
-            onClick={() => fetchPedidos(false)}
-            disabled={loading}
-          >
-            Atualizar
+      <div className="mb-8 p-4 border rounded shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <Button variant="contained" color="primary" onClick={openAddModal}>
+            Adicionar Pedido
           </Button>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="mr-2"
-            />
-            Auto-atualizar
-          </label>
-          {lastUpdate && (
-            <span className="text-xs text-gray-500">
-              Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
-            </span>
-          )}
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outlined" 
+              onClick={() => fetchPedidos(false)}
+              disabled={loading}
+            >
+              Atualizar
+            </Button>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="mr-2"
+              />
+              Auto-atualizar
+            </label>
+            {lastUpdate && (
+              <span className="text-xs text-gray-500">
+                Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
+              </span>
+            )}
+          </div>
+        </div>
+        
+        {/* Filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <TextField
+            label="Filtrar por Cliente"
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            placeholder="Digite o nome do cliente..."
+            size="small"
+            fullWidth
+          />
+          <FormControl size="small" fullWidth>
+            <InputLabel>Filtrar por Status</InputLabel>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              label="Filtrar por Status"
+            >
+              <MenuItem value="">Todos os Status</MenuItem>
+              <MenuItem value="pending">Pendente</MenuItem>
+              <MenuItem value="preparing">Em Preparo</MenuItem>
+              <MenuItem value="ready">Pronto</MenuItem>
+              <MenuItem value="delivered">Entregue</MenuItem>
+              <MenuItem value="cancelled">Cancelado</MenuItem>
+              <MenuItem value="closed">Fechado</MenuItem>
+              <MenuItem value="open">Aberto</MenuItem>
+            </Select>
+          </FormControl>
+          <div className="flex items-center gap-2">
+            <Typography variant="body2" color="textSecondary">
+              {filteredPedidos.length} de {pedidos.length} pedidos
+            </Typography>
+          </div>
         </div>
       </div>
 
@@ -454,6 +541,23 @@ const AdminPedidos = () => {
                 {errors.table_id && (
                   <FormHelperText>{errors.table_id}</FormHelperText>
                 )}
+              </FormControl>
+
+              {/* Status */}
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={pedidoForm.status}
+                  onChange={handlePedidoFormChange}
+                  name="status"
+                  label="Status"
+                >
+                  <MenuItem value="pending">Pendente</MenuItem>
+                  <MenuItem value="preparing">Em Preparo</MenuItem>
+                  <MenuItem value="ready">Pronto</MenuItem>
+                  <MenuItem value="delivered">Entregue</MenuItem>
+                  <MenuItem value="cancelled">Cancelado</MenuItem>
+                </Select>
               </FormControl>
             </div>
 
@@ -651,7 +755,7 @@ const AdminPedidos = () => {
             </tr>
           </thead>
           <tbody className="bg-white">
-            {pedidos.map((pedido) => (
+            {filteredPedidos.map((pedido) => (
               <tr key={pedido.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {pedido.id}
@@ -669,25 +773,67 @@ const AdminPedidos = () => {
                   R$ {parseFloat(pedido.total_amount).toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    pedido.status === 'closed' ? 'bg-green-100 text-green-800' :
-                    pedido.status === 'open' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {pedido.status}
-                  </span>
+                  {(() => {
+                    const statusConfig = {
+                      'pending': { text: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+                      'preparing': { text: 'Em Preparo', color: 'bg-blue-100 text-blue-800' },
+                      'ready': { text: 'Pronto', color: 'bg-green-100 text-green-800' },
+                      'delivered': { text: 'Entregue', color: 'bg-gray-100 text-gray-800' },
+                      'cancelled': { text: 'Cancelado', color: 'bg-red-100 text-red-800' },
+                      'closed': { text: 'Fechado', color: 'bg-gray-100 text-gray-800' },
+                      'open': { text: 'Aberto', color: 'bg-blue-100 text-blue-800' }
+                    };
+                    const config = statusConfig[pedido.status] || { text: pedido.status || '-', color: 'bg-gray-100 text-gray-800' };
+                    return (
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>
+                        {config.text}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(pedido.created_at).toLocaleString('pt-BR')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => openEditModal(pedido)}
-                  >
-                    Editar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => openEditModal(pedido)}
+                    >
+                      Editar
+                    </Button>
+                    {pedido.status === 'pending' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        onClick={() => updateOrderStatus(pedido.id, 'preparing')}
+                      >
+                        Preparar
+                      </Button>
+                    )}
+                    {pedido.status === 'preparing' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        onClick={() => updateOrderStatus(pedido.id, 'ready')}
+                      >
+                        Pronto
+                      </Button>
+                    )}
+                    {pedido.status === 'ready' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => updateOrderStatus(pedido.id, 'delivered')}
+                      >
+                        Entregar
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

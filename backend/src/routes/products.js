@@ -23,12 +23,10 @@ router.get('/', async (req, res) => {
          p.status,
          p.category_id,
          pc.name as category_name,
-         pp.price,
-         pi.image_url
+         pp.price
        FROM products p
        JOIN product_categories pc ON p.category_id = pc.id
-       LEFT JOIN product_prices pp ON p.id = pp.product_id AND pp.end_date IS NULL OR pp.end_date >= CURDATE()
-       LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
+       LEFT JOIN product_prices pp ON p.id = pp.product_id AND (pp.end_date IS NULL OR pp.end_date >= CURDATE())
        ORDER BY p.name`
     );
     res.json(rows);
