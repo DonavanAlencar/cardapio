@@ -14,26 +14,43 @@ const AdminPedidos = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPedido, setEditingPedido] = useState(null);
   const [pedidoForm, setPedidoForm] = useState({ customer_id: '', table_id: '', waiter_session_id: '' });
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   useEffect(() => {
-    const fetchPedidos = async () => {
+    const fetchPedidos = async (isInitialLoad = false) => {
       try {
-        setLoading(true);
+        if (isInitialLoad) {
+          setLoading(true);
+        }
         const response = await api.get('/api/orders');
-        console.log('Resposta da API /api/orders:', response.data);
         setPedidos(response.data);
+        setError(null); // Limpa erros anteriores
+        setLastUpdate(new Date());
       } catch (err) {
         setError(err);
         console.error('Erro ao buscar pedidos:', err);
+        console.error('Detalhes do erro:', err.response?.data);
+        console.error('Status do erro:', err.response?.status);
       } finally {
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchPedidos();
-    const interval = setInterval(fetchPedidos, 5000); // Atualiza a cada 5 segundos
-    return () => clearInterval(interval);
-  }, []);
+    // Primeira carga com loading
+    fetchPedidos(true);
+    
+    // Atualizações automáticas sem loading (a cada 10 segundos)
+    let interval;
+    if (autoRefresh) {
+      interval = setInterval(() => fetchPedidos(false), 10000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh]);
 
   const openAddModal = () => {
     setEditingPedido(null);
@@ -83,10 +100,33 @@ const AdminPedidos = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Gerenciar Pedidos</h1>
 
-      <div className="mb-8 p-4 border rounded shadow-sm">
+      <div className="mb-8 p-4 border rounded shadow-sm flex justify-between items-center">
         <Button variant="contained" color="primary" onClick={openAddModal}>
           Adicionar Pedido
         </Button>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outlined" 
+            onClick={() => fetchPedidos(false)}
+            disabled={loading}
+          >
+            Atualizar
+          </Button>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="mr-2"
+            />
+            Auto-atualizar
+          </label>
+          {lastUpdate && (
+            <span className="text-xs text-gray-500">
+              Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
+            </span>
+          )}
+        </div>
       </div>
 
       <Dialog open={modalOpen} onClose={closeModal} maxWidth="sm" fullWidth>
@@ -138,7 +178,74 @@ const AdminPedidos = () => {
         </form>
       </Dialog>
 
-      {/* ...restante da tabela/lista de pedidos... */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-300">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                ID
+              </th>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                Cliente
+              </th>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                Mesa
+              </th>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                Total
+              </th>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                Data
+              </th>
+              <th className="px-6 py-3 border-b border-gray-300 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white">
+            {pedidos.map((pedido) => (
+              <tr key={pedido.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {pedido.id}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {pedido.customer_id || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {pedido.table_id || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  R$ {parseFloat(pedido.total_amount).toFixed(2)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    pedido.status === 'closed' ? 'bg-green-100 text-green-800' :
+                    pedido.status === 'open' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {pedido.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(pedido.created_at).toLocaleString('pt-BR')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => openEditModal(pedido)}
+                  >
+                    Editar
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

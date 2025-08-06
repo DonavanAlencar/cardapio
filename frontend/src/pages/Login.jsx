@@ -21,7 +21,13 @@ export default function Login() {
         api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
         
         // Redireciona com base na role do usuário
-        navigate('/new-features');
+        if (res.data.user.role === 'admin') {
+          navigate('/admin/pedidos');
+        } else if (res.data.user.role === 'waiter') {
+          navigate('/garcom/mesas');
+        } else {
+          navigate('/new-features');
+        }
       } else {
         // Caso a resposta não seja válida, exibe um erro
         throw new Error('Resposta inválida do servidor');

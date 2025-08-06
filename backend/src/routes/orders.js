@@ -12,12 +12,9 @@ const authorizeWaiterAdminOrManager = (req, res, next) => {
 };
 
 // Rota para listar todos os pedidos
-router.get('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
-  console.log('Requisição para /orders recebida');
+router.get('/', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   try {
-    console.log('Executando query para buscar pedidos...');
     const [rows] = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-    console.log(`Query executada com sucesso. ${rows.length} pedidos encontrados.`);
     res.json(rows);
   } catch (err) {
     console.error('Erro ao buscar pedidos:', err);
@@ -26,7 +23,7 @@ router.get('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
 });
 
 // Rota para buscar um pedido específico com seus itens
-router.get('/:id', auth, authorizeWaiterAdminOrManager, async (req, res) => {
+router.get('/:id', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   const { id } = req.params;
   try {
     const [orderRows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
@@ -52,7 +49,7 @@ router.get('/:id', auth, authorizeWaiterAdminOrManager, async (req, res) => {
 });
 
 // Rota para criar um novo pedido
-router.post('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
+router.post('/', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   const { customer_id, table_id, waiter_session_id, items } = req.body;
   let connection;
   try {
@@ -131,7 +128,7 @@ router.post('/', auth, authorizeWaiterAdminOrManager, async (req, res) => {
 });
 
 // Rota para adicionar um item a um pedido existente
-router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, res) => {
+router.post('/:orderId/items', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   const { orderId } = req.params;
   const { product_id, quantity, modifier_ids = [] } = req.body;
   let connection;
@@ -268,7 +265,7 @@ router.post('/:orderId/items', auth, authorizeWaiterAdminOrManager, async (req, 
 });
 
 // Rota para atualizar um item de pedido
-router.put('/:orderId/items/:itemId', auth, authorizeWaiterAdminOrManager, async (req, res) => {
+router.put('/:orderId/items/:itemId', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   const { orderId, itemId } = req.params;
   const { quantity } = req.body;
   let connection;
@@ -307,7 +304,7 @@ router.put('/:orderId/items/:itemId', auth, authorizeWaiterAdminOrManager, async
 });
 
 // Rota para deletar um item de pedido
-router.delete('/:orderId/items/:itemId', auth, authorizeWaiterAdminOrManager, async (req, res) => {
+router.delete('/:orderId/items/:itemId', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   const { orderId, itemId } = req.params;
   let connection;
   try {
