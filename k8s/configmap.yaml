@@ -7,4 +7,5 @@ data:
   NODE_ENV: "production"
   PORT: "4000"
   DB_HOST: "mysql-0.mysql"
-  DB_NAME: "cardapio" 
+  DB_NAME: "cardapio"
+  JWT_SECRET: "seu-jwt-secret-super-secreto-aqui" 

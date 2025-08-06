@@ -6,9 +6,9 @@ WORKDIR /app
 
 # Copia configs e instala dependências
 COPY package.json package-lock.json ./
-COPY tailwind.config.js postcss.config.js ./
-RUN npm ci
+RUN npm ci --only=production
 
+# Define a URL da API
 ARG REACT_APP_API_BASE_URL
 ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
 
@@ -22,7 +22,7 @@ FROM node:18-alpine AS runtime
 WORKDIR /app
 
 # Instala o servidor estático
-RUN npm install --global serve
+RUN npm install -g serve
 
 # Copia o build final
 COPY --from=builder /app/build ./build

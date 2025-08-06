@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: cardapio-backend-ingress
+  name: cardapio-ingress
   namespace: cardapio
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
@@ -10,7 +10,17 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
 spec:
   rules:
-  - host: api.cardapio.local  # Substitua pelo seu domínio real
+  - host: cardapio.local  # Frontend
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cardapio-frontend-service
+            port:
+              number: 80
+  - host: api.cardapio.local  # Backend API
     http:
       paths:
       - path: /

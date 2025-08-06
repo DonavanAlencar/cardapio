@@ -55,8 +55,13 @@ spec:
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-root-password
+              name: mysql-pass
               key: mysql-root-password
+        - name: JWT_SECRET
+          valueFrom:
+            configMapKeyRef:
+              name: cardapio-backend-config
+              key: JWT_SECRET
         resources:
           requests:
             memory: "128Mi"

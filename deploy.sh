@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# Script principal para deploy do Cardápio Backend
+# Script principal para deploy do Cardápio (Backend + Frontend)
 # Uso: ./deploy.sh [versao]
 
 set -e
 
 VERSION=${1:-"1.0"}
 REGISTRY="donavanalencar"
-IMAGE_NAME="cardapio-backend"
+BACKEND_IMAGE_NAME="cardapio-backend"
+FRONTEND_IMAGE_NAME="cardapio-frontend"
 
-echo "🚀 Deploy do Cardápio Backend - Versão ${VERSION}"
+echo "🚀 Deploy do Cardápio - Versão ${VERSION}"
 echo "📦 Registry: ${REGISTRY}"
-echo "🖼️  Imagem: ${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+echo "🖼️  Backend: ${REGISTRY}/${BACKEND_IMAGE_NAME}:${VERSION}"
+echo "🖼️  Frontend: ${REGISTRY}/${FRONTEND_IMAGE_NAME}:${VERSION}"
 echo ""
 
 # Verificar se o Docker está logado
@@ -48,9 +50,15 @@ fi
 echo "✅ Pré-requisitos verificados!"
 echo ""
 
-# Build e push
-echo "🔨 Build e Push da imagem..."
+# Build e push do Backend
+echo "🔨 Build e Push do Backend..."
 ./scripts/build-and-push.sh ${REGISTRY} ${VERSION}
+
+echo ""
+
+# Build e push do Frontend
+echo "🔨 Build e Push do Frontend..."
+./scripts/build-and-push-frontend.sh ${REGISTRY} ${VERSION}
 
 echo ""
 
@@ -63,6 +71,8 @@ echo "🎉 Deploy concluído com sucesso!"
 echo ""
 echo "📋 Comandos úteis:"
 echo "   Verificar pods: kubectl get pods -n cardapio"
-echo "   Ver logs: kubectl logs -f deployment/cardapio-backend -n cardapio"
+echo "   Ver logs backend: kubectl logs -f deployment/cardapio-backend -n cardapio"
+echo "   Ver logs frontend: kubectl logs -f deployment/cardapio-frontend -n cardapio"
 echo "   Acessar API: kubectl port-forward service/cardapio-backend-service 4000:80 -n cardapio"
-echo "   Health check: curl http://localhost:4000/api/health" 
+echo "   Acessar Frontend: kubectl port-forward service/cardapio-frontend-service 3000:80 -n cardapio"
+echo "   Health check API: curl http://localhost:4000/api/health" 

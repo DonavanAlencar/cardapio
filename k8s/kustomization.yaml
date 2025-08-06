@@ -9,6 +9,8 @@ resources:
 - secret.yaml
 - deployment.yaml
 - service.yaml
+- frontend-deployment.yaml
+- frontend-service.yaml
 - ingress.yaml
 
 commonLabels:
@@ -17,4 +19,6 @@ commonLabels:
 
 images:
 - name: donavanalencar/cardapio-backend  # SUBSTITUA PELO SEU REGISTRY
+  newTag: "1.0"
+- name: donavanalencar/cardapio-frontend  # SUBSTITUA PELO SEU REGISTRY
   newTag: "1.0" 
