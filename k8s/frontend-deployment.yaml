@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: cardapio-frontend
-        image: donavanalencar/cardapio-frontend:1.1
+        image: donavanalencar/cardapio-frontend:1.7
         ports:
         - containerPort: 3000
         env:
