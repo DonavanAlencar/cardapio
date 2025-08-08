@@ -23,13 +23,12 @@ spec:
     spec:
       containers:
       - name: cardapio-frontend
-        image: node:18-alpine
+        image: donavanalencar/cardapio-frontend:1.1
         ports:
         - containerPort: 3000
         env:
         - name: REACT_APP_API_BASE_URL
           value: "http://cardapio-backend-service:80/api"
-        command: ["sh", "-c", "npm install -g serve && echo 'Frontend temporário' > /tmp/index.html && serve -s /tmp -l 3000"]
         resources:
           requests:
             memory: "64Mi"

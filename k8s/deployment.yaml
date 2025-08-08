@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: cardapio-backend
-        image: donavanalencar/cardapio-backend:1.0  # SUBSTITUA PELO SEU REGISTRY
+        image: donavanalencar/cardapio-backend:1.1
         ports:
         - containerPort: 4000
         env:

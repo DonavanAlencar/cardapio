@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copia configs e instala dependências
 COPY package.json package-lock.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Define a URL da API
 ARG REACT_APP_API_BASE_URL
