@@ -1,34 +1,21 @@
-# frontend/Dockerfile
-
-# Stage 1: build da aplicação React
+# Dockerfile
+# etapa 1: build
 FROM node:18-alpine AS builder
 WORKDIR /app
-
-# Copia configs e instala dependências
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Define a URL da API
 ARG REACT_APP_API_BASE_URL
 ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
-
-# Copia fontes e gera build
-COPY public ./public
-COPY src    ./src
+COPY package*.json ./
+RUN npm install
+COPY . .
 RUN npm run build
 
-# Stage 2: runtime com 'serve'
-FROM node:18-alpine AS runtime
+# etapa 2: runtime
+FROM node:18-alpine
 WORKDIR /app
-
-# Instala o servidor estático
+ARG REACT_APP_API_BASE_URL
+ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
+# instala o serve pra entregar estáticos
 RUN npm install -g serve
-
-# Copia o build final
-COPY --from=builder /app/build ./build
-
-# Expõe porta que o serve usa
+COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-
-# Comando para servir o conteúdo
-CMD ["serve", "-s", "build", "-l", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
