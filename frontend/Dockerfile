@@ -16,6 +16,6 @@ ARG REACT_APP_API_BASE_URL
 ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
 # instala o serve pra entregar estáticos
 RUN npm install -g serve
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/build ./build
 EXPOSE 3000
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["serve", "-s", "build", "-l", "3000"]
