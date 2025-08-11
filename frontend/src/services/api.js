@@ -1,10 +1,5 @@
 import axios from 'axios';
 
-// Use a base URL defined at build time via REACT_APP_API_BASE_URL.
-// When the variable is not provided (e.g. in Kubernetes where the
-// frontend is served behind an ingress), fall back to a path relative
-// to the application's first URL segment. This ensures API calls resolve
-// correctly when the app is deployed under a subpath like `/cardapio`.
 const [, firstSegment] = window.location.pathname.split('/');
 const apiBasePath = firstSegment ? `/${firstSegment}/api` : '/api';
 const baseURL =
