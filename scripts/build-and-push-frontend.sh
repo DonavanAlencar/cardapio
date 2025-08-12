@@ -21,11 +21,14 @@ echo "🚀 Iniciando build e push da imagem Docker do Frontend..."
 echo "📦 Registry: ${REGISTRY}"
 echo "🏷️  Tag: ${TAG}"
 echo "🖼️  Nome da imagem: ${FULL_IMAGE_NAME}"
+echo "🔧 API URL: http://cardapio-backend-service:80/api"
 
-# Build da imagem
+# Build da imagem com a variável de ambiente correta
 echo "🔨 Construindo imagem Docker..."
 cd frontend
-docker build --build-arg REACT_APP_API_BASE_URL=http://cardapio-backend-service:80/api -t ${FULL_IMAGE_NAME} .
+docker build \
+    --build-arg REACT_APP_API_BASE_URL=http://cardapio-backend-service:80/api \
+    -t ${FULL_IMAGE_NAME} .
 
 # Teste local da imagem (opcional)
 echo "🧪 Testando imagem localmente..."
@@ -54,4 +57,6 @@ docker push ${FULL_IMAGE_NAME}
 echo "🎉 Imagem ${FULL_IMAGE_NAME} foi construída e enviada com sucesso!"
 echo ""
 echo "📋 Para usar no Kubernetes, use:"
-echo "   image: ${FULL_IMAGE_NAME}" 
+echo "   image: ${FULL_IMAGE_NAME}"
+echo ""
+echo "🔧 Variável de ambiente incluída: REACT_APP_API_BASE_URL=http://cardapio-backend-service:80/api" 

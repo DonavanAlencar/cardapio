@@ -12,8 +12,6 @@ RUN npm run build
 # etapa 2: runtime
 FROM node:18-alpine
 WORKDIR /app
-ARG REACT_APP_API_BASE_URL
-ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
 # instala o serve pra entregar estáticos
 RUN npm install -g serve
 COPY --from=builder /app/build ./build
