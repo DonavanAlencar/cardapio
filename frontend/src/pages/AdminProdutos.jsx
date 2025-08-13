@@ -24,7 +24,7 @@ const AdminProdutos = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
+      const response = await api.get('/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
@@ -34,7 +34,7 @@ const AdminProdutos = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/api/product-categories');
+      const response = await api.get('/product-categories');
       setCategories(response.data);
       if (response.data.length > 0) {
         setNewProductCategoryId(response.data[0].id); // Define a primeira categoria como padrão
@@ -51,7 +51,7 @@ const AdminProdutos = () => {
       return;
     }
     try {
-      const response = await api.post('/api/products', {
+      const response = await api.post('/products', {
         name: newProductName,
         description: newProductDescription,
         sku: newProductSku,
@@ -85,7 +85,7 @@ const AdminProdutos = () => {
       return;
     }
     try {
-      const response = await api.put(`/api/products/${editingProduct.id}`, {
+      const response = await api.put(`/products/${editingProduct.id}`, {
         name: newProductName,
         description: newProductDescription,
         sku: newProductSku,
@@ -108,7 +108,7 @@ const AdminProdutos = () => {
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar este produto?')) {
       try {
-        await api.delete(`/api/products/${id}`);
+        await api.delete(`/products/${id}`);
         setProducts(products.filter(prod => prod.id !== id));
         alert('Produto deletado com sucesso!');
       } catch (error) {
@@ -120,7 +120,7 @@ const AdminProdutos = () => {
 
   const handleToggleProductStatus = async (product) => {
     try {
-      await api.put(`/api/products/${product.id}`, {
+      await api.put(`/products/${product.id}`, {
         ...product,
         status: product.status === 'active' ? 'inactive' : 'active',
       });

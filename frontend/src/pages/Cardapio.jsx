@@ -13,7 +13,7 @@ export default function Cardapio() {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
+      const response = await api.get('/products');
       setProdutos(response.data);
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
@@ -22,7 +22,7 @@ export default function Cardapio() {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/api/product-categories');
+      const response = await api.get('/product-categories');
       setCategorias([{ id: 'todas', name: 'Todas' }, ...response.data]);
     } catch (error) {
       console.error('Erro ao buscar categorias:', error);

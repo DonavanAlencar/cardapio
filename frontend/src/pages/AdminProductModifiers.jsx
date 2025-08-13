@@ -27,7 +27,7 @@ const AdminProductModifiers = () => {
 
   const fetchModifiers = async () => {
     try {
-      const response = await api.get('/api/product-modifiers');
+      const response = await api.get('/product-modifiers');
       setModifiers(response.data);
     } catch (error) {
       console.error('Erro ao buscar modificadores:', error);
@@ -37,7 +37,7 @@ const AdminProductModifiers = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
+      const response = await api.get('/products');
       setProducts(response.data);
       if (response.data.length > 0) {
         setNewModifierProductId(response.data[0].id); // Define o primeiro produto como padrão
@@ -72,7 +72,7 @@ const AdminProductModifiers = () => {
       return;
     }
     try {
-      const response = await api.post('/api/product-modifiers', {
+      const response = await api.post('/product-modifiers', {
         product_id: newModifierProductId,
         nome: newModifierName,
         tipo: newModifierType,
@@ -109,7 +109,7 @@ const AdminProductModifiers = () => {
       return;
     }
     try {
-      const response = await api.put(`/api/product-modifiers/${editingModifier.id}`, {
+      const response = await api.put(`/product-modifiers/${editingModifier.id}`, {
         product_id: newModifierProductId,
         nome: newModifierName,
         tipo: newModifierType,
@@ -134,7 +134,7 @@ const AdminProductModifiers = () => {
   const handleDeleteModifier = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar este modificador?')) {
       try {
-        await api.delete(`/api/product-modifiers/${id}`);
+        await api.delete(`/product-modifiers/${id}`);
         setModifiers(modifiers.filter(mod => mod.id !== id));
         alert('Modificador deletado com sucesso!');
       } catch (error) {

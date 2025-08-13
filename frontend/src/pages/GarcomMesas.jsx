@@ -12,7 +12,7 @@ export default function GarcomMesas() {
 
   const fetchTables = async () => {
     try {
-      const response = await api.get('/api/tables');
+      const response = await api.get('/tables');
       setTables(response.data);
     } catch (err) {
       console.error('Erro ao buscar mesas:', err);
@@ -23,7 +23,7 @@ export default function GarcomMesas() {
   const handleCreateTableOrder = async (tableId) => {
     try {
       // Criar um novo pedido associado à mesa
-      const response = await api.post('/api/orders', { table_id: tableId });
+      const response = await api.post('/orders', { table_id: tableId });
       const newOrderId = response.data.id;
       alert(`Pedido ${newOrderId} criado para a mesa ${tableId}!`);
       navigate(`/garcom/pedido/${newOrderId}`);

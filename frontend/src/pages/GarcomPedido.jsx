@@ -38,7 +38,7 @@ export default function GarcomPedido() {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
+      const response = await api.get('/products');
       setProducts(response.data);
     } catch (err) {
       console.error('Erro ao buscar produtos:', err);
@@ -48,7 +48,7 @@ export default function GarcomPedido() {
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await api.get('/api/payment-methods');
+      const response = await api.get('/payment-methods');
       setPaymentMethods(response.data);
       if (response.data.length > 0) {
         setSelectedPaymentMethod(response.data[0].id); // Seleciona o primeiro método como padrão
@@ -61,7 +61,7 @@ export default function GarcomPedido() {
 
   const fetchOrder = async (id) => {
     try {
-      const response = await api.get(`/api/orders/${id}`);
+      const response = await api.get(`/orders/${id}`);
       setOrder(response.data);
       setLoading(false);
     } catch (err) {
@@ -74,7 +74,7 @@ export default function GarcomPedido() {
   const fetchKitchenStatus = async () => {
     if (!pedidoId) return;
     try {
-      const res = await api.get('/api/kitchen/tickets');
+      const res = await api.get('/kitchen/tickets');
       // Agrupar por order_item_id
       const statusMap = {};
       res.data.forEach(item => {
@@ -92,7 +92,7 @@ export default function GarcomPedido() {
     setSelectedProduct(product);
     setSelectedModifiers([]);
     try {
-      const res = await api.get(`/api/product-modifiers?product_id=${product.id}`);
+      const res = await api.get(`/product-modifiers?product_id=${product.id}`);
       setModifiers(res.data);
       setModifierModalOpen(true);
     } catch (err) {
@@ -119,7 +119,7 @@ export default function GarcomPedido() {
   const handleAddItemWithModifiers = async () => {
     if (!selectedProduct) return;
     try {
-      await api.post(`/api/orders/${pedidoId}/items`, {
+      await api.post(`/orders/${pedidoId}/items`, {
         product_id: selectedProduct.id,
         quantity: 1,
         modifier_ids: selectedModifiers,
@@ -139,7 +139,7 @@ export default function GarcomPedido() {
       return;
     }
     try {
-      await api.put(`/api/orders/${pedidoId}/items/${itemId}`, {
+      await api.put(`/orders/${pedidoId}/items/${itemId}`, {
         quantity: newQuantity,
       });
       fetchOrder(pedidoId);
@@ -153,7 +153,7 @@ export default function GarcomPedido() {
   const handleRemoveItem = async (itemId) => {
     if (window.confirm('Tem certeza que deseja remover este item do pedido?')) {
       try {
-        await api.delete(`/api/orders/${pedidoId}/items/${itemId}`);
+        await api.delete(`/orders/${pedidoId}/items/${itemId}`);
         fetchOrder(pedidoId);
         alert('Item removido do pedido!');
       } catch (err) {
@@ -180,7 +180,7 @@ export default function GarcomPedido() {
       return;
     }
     try {
-      await api.post('/api/payments', {
+      await api.post('/payments', {
         order_id: pedidoId,
         payment_method_id: selectedPaymentMethod,
         amount: order.total_amount,

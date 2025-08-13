@@ -26,7 +26,7 @@ const AdminIngredients = () => {
 
   const fetchIngredients = async () => {
     try {
-      const response = await api.get('/api/ingredients');
+      const response = await api.get('/ingredients');
       setIngredients(response.data);
     } catch (error) {
       console.error('Erro ao buscar ingredientes:', error);
@@ -40,7 +40,7 @@ const AdminIngredients = () => {
       return;
     }
     try {
-      const response = await api.post('/api/ingredients', {
+      const response = await api.post('/ingredients', {
         nome: newIngredientName,
         unidade_medida: newIngredientUnit,
         quantidade_estoque: newIngredientStock,
@@ -75,7 +75,7 @@ const AdminIngredients = () => {
       return;
     }
     try {
-      const response = await api.put(`/api/ingredients/${editingIngredient.id}`, {
+      const response = await api.put(`/ingredients/${editingIngredient.id}`, {
         nome: newIngredientName,
         unidade_medida: newIngredientUnit,
         quantidade_estoque: newIngredientStock,
@@ -99,7 +99,7 @@ const AdminIngredients = () => {
   const handleDeleteIngredient = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar este ingrediente?')) {
       try {
-        await api.delete(`/api/ingredients/${id}`);
+        await api.delete(`/ingredients/${id}`);
         setIngredients(ingredients.filter(ing => ing.id !== id));
         alert('Ingrediente deletado com sucesso!');
       } catch (error) {
@@ -144,7 +144,7 @@ const AdminIngredients = () => {
   };
   const handleRegistrarEntrada = async () => {
     try {
-      await api.post('/api/stock-movements', {
+      await api.post('/stock-movements', {
         ingrediente_id: entradaIngredienteId,
         tipo_movimento: 'ENTRADA',
         quantidade: entradaQuantidade,

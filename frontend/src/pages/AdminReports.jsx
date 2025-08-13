@@ -21,9 +21,9 @@ export default function AdminReports() {
       setLoading(true);
       try {
         const [salesRes, consRes, stockRes] = await Promise.all([
-          api.get('/api/reports/daily-sales'),
-          api.get('/api/reports/ingredient-consumption'),
-          api.get('/api/reports/low-stock'),
+          api.get('/reports/daily-sales'),
+api.get('/reports/ingredient-consumption'),
+api.get('/reports/low-stock'),
         ]);
         setDailySales(salesRes.data);
         setIngredientConsumption(consRes.data);

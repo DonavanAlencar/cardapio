@@ -20,7 +20,7 @@ const AdminProductCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/api/product-categories');
+      const response = await api.get('/product-categories');
       setCategories(response.data);
     } catch (error) {
       console.error('Erro ao buscar categorias:', error);
@@ -34,7 +34,7 @@ const AdminProductCategories = () => {
       return;
     }
     try {
-      const response = await api.post('/api/product-categories', {
+      const response = await api.post('/product-categories', {
         name: newCategoryName,
         description: newCategoryDescription,
         display_order: newCategoryDisplayOrder,
@@ -63,7 +63,7 @@ const AdminProductCategories = () => {
       return;
     }
     try {
-      const response = await api.put(`/api/product-categories/${editingCategory.id}`, {
+      const response = await api.put(`/product-categories/${editingCategory.id}`, {
         name: newCategoryName,
         description: newCategoryDescription,
         display_order: newCategoryDisplayOrder,
@@ -83,7 +83,7 @@ const AdminProductCategories = () => {
   const handleDeleteCategory = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar esta categoria?')) {
       try {
-        await api.delete(`/api/product-categories/${id}`);
+        await api.delete(`/product-categories/${id}`);
         setCategories(categories.filter(cat => cat.id !== id));
         alert('Categoria deletada com sucesso!');
       } catch (error) {

@@ -20,7 +20,7 @@ const AdminStockMovements = () => {
 
   const fetchIngredients = async () => {
     try {
-      const response = await api.get('/api/ingredients');
+      const response = await api.get('/ingredients');
       setIngredients(response.data);
       if (response.data.length > 0) {
         setSelectedIngredientId(response.data[0].id);
@@ -37,7 +37,7 @@ const AdminStockMovements = () => {
       return;
     }
     try {
-      await api.post('/api/stock-movements', {
+      await api.post('/stock-movements', {
         ingrediente_id: selectedIngredientId,
         tipo_movimento: movementType,
         quantidade: quantity,

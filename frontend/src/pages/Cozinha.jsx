@@ -17,7 +17,7 @@ export default function Cozinha() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/kitchen/tickets');
+      const res = await api.get('/kitchen/tickets');
       setTickets(res.data);
     } catch (err) {
       setTickets([]);
@@ -35,7 +35,7 @@ export default function Cozinha() {
     const idx = statusOrder.indexOf(currentStatus);
     if (idx === -1 || idx === statusOrder.length - 1) return;
     const nextStatus = statusOrder[idx + 1];
-    await api.put(`/api/kitchen/tickets/${ticketId}/items/${itemId}/status`, {
+    await api.put(`/kitchen/tickets/${ticketId}/items/${itemId}/status`, {
       preparation_status: nextStatus,
     });
     fetchTickets();

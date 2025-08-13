@@ -67,7 +67,7 @@ const AdminPedidos = () => {
         if (isInitialLoad) {
           setLoading(true);
         }
-        const response = await api.get('/api/orders');
+        const response = await api.get('/orders');
         setPedidos(response.data);
         setError(null); // Limpa erros anteriores
         setLastUpdate(new Date());
@@ -100,10 +100,10 @@ const AdminPedidos = () => {
   const loadModalData = async () => {
     try {
       const [customersRes, tablesRes, categoriesRes, productsRes] = await Promise.all([
-        api.get('/api/customers'),
-        api.get('/api/tables'),
-        api.get('/api/product-categories'),
-        api.get('/api/products')
+        api.get('/customers'),
+        api.get('/tables'),
+        api.get('/product-categories'),
+        api.get('/products')
       ]);
       
       setCustomers(customersRes.data);
@@ -180,7 +180,7 @@ const AdminPedidos = () => {
     setSelectedModifiers([]);
     if (product) {
       try {
-        const response = await api.get(`/api/product-modifiers?product_id=${product.id}`);
+        const response = await api.get(`/product-modifiers?product_id=${product.id}`);
         setModifiers(response.data);
       } catch (err) {
         setModifiers([]);
@@ -260,7 +260,7 @@ const AdminPedidos = () => {
   // Atualizar status do pedido
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      await api.put(`/api/orders/${orderId}`, { status: newStatus });
+      await api.put(`/orders/${orderId}`, { status: newStatus });
       alert('Status atualizado com sucesso!');
       fetchPedidos(false);
     } catch (err) {
@@ -272,7 +272,7 @@ const AdminPedidos = () => {
   // Criar novo cliente
   const createCustomer = async () => {
     try {
-      const response = await api.post('/api/customers', newCustomer);
+      const response = await api.post('/customers', newCustomer);
       const createdCustomer = response.data;
       
       // Adicionar o novo cliente à lista
@@ -320,7 +320,7 @@ const AdminPedidos = () => {
           }))
         };
         
-        await api.post('/api/orders', orderData);
+        await api.post('/orders', orderData);
         alert('Pedido criado com sucesso!');
       }
       closeModal();

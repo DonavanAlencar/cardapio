@@ -15,7 +15,7 @@ const AdminMesas = () => {
 
   const fetchTables = async () => {
     try {
-      const response = await api.get('/api/tables');
+      const response = await api.get('/tables');
       setTables(response.data);
     } catch (error) {
       console.error('Erro ao buscar mesas:', error);
@@ -46,7 +46,7 @@ const AdminMesas = () => {
       return;
     }
     try {
-      const response = await api.post('/api/tables', {
+      const response = await api.post('/tables', {
         table_number: newTableNumber,
         capacity: newTableCapacity,
         status: newTableStatus,
@@ -81,7 +81,7 @@ const AdminMesas = () => {
       return;
     }
     try {
-      const response = await api.put(`/api/tables/${editingTable.id}`, {
+      const response = await api.put(`/tables/${editingTable.id}`, {
         table_number: newTableNumber,
         capacity: newTableCapacity,
         status: newTableStatus,
@@ -102,7 +102,7 @@ const AdminMesas = () => {
   const handleDeleteTable = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar esta mesa?')) {
       try {
-        await api.delete(`/api/tables/${id}`);
+        await api.delete(`/tables/${id}`);
         setTables(tables.filter(tbl => tbl.id !== id));
         alert('Mesa deletada com sucesso!');
       } catch (error) {
