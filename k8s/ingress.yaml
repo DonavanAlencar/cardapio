@@ -8,6 +8,8 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.tls.certresolver: le
+    # Permitir acesso HTTP para desafio ACME
+    traefik.ingress.kubernetes.io/router.tls.options: "default"
 spec:
   ingressClassName: traefik
 

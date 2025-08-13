@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+  namespace: kube-system
+data:
+  traefik.yml: |
+    # Configuração estática do Traefik
+    api:
+      dashboard: true
+      insecure: false
+    
+    # Configuração de entrypoints
+    entryPoints:
+      web:
+        address: ":80"
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+      websecure:
+        address: ":443"
+    
+    # Configuração de providers
+    providers:
+      kubernetesCRD: {}
+      kubernetesIngress: {}
+    
+    # Configuração de certificados Let's Encrypt
+    certificatesResolvers:
+      le:
+        acme:
+          email: admin@546digitalservices.com  # ⚠️ ALTERAR PARA SEU EMAIL REAL
+          storage: /data/acme.json
+          httpChallenge:
+            entryPoint: web
+    
+    # Configuração de logs
+    log:
+      level: INFO
+    accessLog: {}

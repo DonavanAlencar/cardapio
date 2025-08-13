@@ -1,0 +1,61 @@
+# Traefik Helm Values simplificado para Let's Encrypt
+# Apenas as configurações essenciais
+
+# Configurações de ports
+ports:
+  web:
+    port: 80
+    expose:
+      enabled: true
+      exposedPort: 80
+    protocol: TCP
+  websecure:
+    port: 443
+    expose:
+      enabled: true
+      exposedPort: 443
+    protocol: TCP
+    tls:
+      enabled: true
+
+# Configurações de providers
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true
+    allowExternalNameServices: true
+
+# Configurações de certificados e Let's Encrypt
+certificatesResolvers:
+  le:
+    acme:
+      email: admin@546digitalservices.com  # ⚠️ ALTERAR PARA SEU EMAIL REAL
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
+
+# Configurações de logs
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+  file:
+    enabled: true
+
+# Configurações de dashboard
+dashboard:
+  enabled: true
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+
+# Configurações de persistence para certificados
+persistence:
+  enabled: true
+  size: 128Mi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  path: /data

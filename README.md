@@ -63,6 +63,211 @@ O backend fornece a infraestrutura para todas as funcionalidades:
 
 Para configurar e executar o projeto localmente, siga as instruções nos diretórios `frontend` e `backend`.
 
+## 🚀 Implantação em Produção com Traefik e Let's Encrypt
+
+### Pré-requisitos
+
+- Cluster Kubernetes funcionando
+- Helm instalado
+- kubectl configurado
+- Domínio configurado (ex: `food.546digitalservices.com`)
+
+### 1. Configuração do Traefik com Let's Encrypt
+
+#### 1.1 Criar arquivo de valores Helm
+
+Crie o arquivo `k8s/traefik-final-values.yaml`:
+
+```yaml
+# Traefik Helm Values para Let's Encrypt
+ports:
+  web:
+    port: 80
+    expose:
+      enabled: true
+      exposedPort: 80
+    protocol: TCP
+  websecure:
+    port: 443
+    expose:
+      enabled: true
+      exposedPort: 443
+    protocol: TCP
+    tls:
+      enabled: true
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true
+    allowExternalNameServices: true
+
+certificatesResolvers:
+  le:
+    acme:
+      email: SEU_EMAIL_AQUI@exemplo.com  # ⚠️ ALTERAR PARA SEU EMAIL REAL
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
+
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+  file:
+    enabled: true
+
+dashboard:
+  enabled: true
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+
+persistence:
+  enabled: true
+  size: 128Mi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  path: /data
+```
+
+#### 1.2 Instalar/Atualizar Traefik
+
+```bash
+# Adicionar repositório Helm
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+
+# Instalar/Atualizar Traefik
+helm upgrade traefik traefik/traefik \
+  --namespace kube-system \
+  --values k8s/traefik-final-values.yaml \
+  --wait \
+  --timeout 5m
+```
+
+### 2. Configuração do Ingress
+
+#### 2.1 Configurar ingress com suporte a Let's Encrypt
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cardapio-ingress
+  namespace: cardapio
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: le
+    traefik.ingress.kubernetes.io/router.tls.options: "default"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - food.546digitalservices.com
+  rules:
+    - host: food.546digitalservices.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cardapio-frontend-service
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: cardapio-backend-service
+                port:
+                  number: 80
+```
+
+#### 2.2 Aplicar o ingress
+
+```bash
+kubectl apply -f k8s/ingress.yaml
+```
+
+### 3. Verificação da Instalação
+
+#### 3.1 Verificar status do Traefik
+
+```bash
+# Verificar pods
+kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik
+
+# Verificar serviços
+kubectl get svc -n kube-system -l app.kubernetes.io/name=traefik
+
+# Verificar ingress
+kubectl get ingress -n cardapio
+```
+
+#### 3.2 Monitorar logs do Let's Encrypt
+
+```bash
+# Obter nome do pod do Traefik
+POD_NAME=$(kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik -o jsonpath='{.items[0].metadata.name}')
+
+# Monitorar logs para certificados
+kubectl logs -f -n kube-system $POD_NAME | grep -i acme
+```
+
+#### 3.3 Testar o domínio
+
+```bash
+# Testar HTTP (deve redirecionar para HTTPS)
+curl -I http://food.546digitalservices.com
+
+# Testar HTTPS (deve funcionar com certificado válido)
+curl -I https://food.546digitalservices.com
+```
+
+### 4. Solução de Problemas
+
+#### 4.1 Certificado não sendo solicitado
+
+- Verificar se o resolver `le` está configurado no Traefik
+- Verificar se o ingress está usando `certresolver: le`
+- Verificar logs do Traefik para erros ACME
+
+#### 4.2 Erro 404 no desafio ACME
+
+- Verificar se o ingress permite acesso HTTP ao endpoint `.well-known/acme-challenge`
+- Verificar se os serviços estão rodando e acessíveis
+
+#### 4.3 Problemas de permissões
+
+- Verificar se o Traefik tem permissões para criar secrets
+- Verificar se o namespace tem as permissões necessárias
+
+### 5. Manutenção
+
+#### 5.1 Atualizar Traefik
+
+```bash
+helm repo update
+helm upgrade traefik traefik/traefik \
+  --namespace kube-system \
+  --values k8s/traefik-final-values.yaml
+```
+
+#### 5.2 Backup de certificados
+
+Os certificados são armazenados em `/data/acme.json` no pod do Traefik. Para backup:
+
+```bash
+kubectl cp kube-system/traefik-<pod-name>:/data/acme.json ./acme-backup.json
+```
+
 ---
 
 **Nota:** Este README foi gerado automaticamente com base na estrutura do projeto e nos nomes dos arquivos/componentes. Para detalhes mais específicos, consulte a documentação interna ou o código-fonte de cada módulo.
