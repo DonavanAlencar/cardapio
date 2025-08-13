@@ -23,12 +23,15 @@ spec:
     spec:
       containers:
       - name: cardapio-frontend
-        image: donavanalencar/cardapio-frontend:1.8
+        image: donavanalencar/cardapio-frontend:1.9
         ports:
         - containerPort: 3000
         env:
         - name: REACT_APP_API_BASE_URL
-          value: "http://cardapio-backend-service:80/api"
+          valueFrom:
+            configMapKeyRef:
+              name: frontend-api-config
+              key: REACT_APP_API_BASE_URL
         resources:
           requests:
             memory: "64Mi"

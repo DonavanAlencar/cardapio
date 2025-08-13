@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-api-config
+  namespace: cardapio
+data:
+  REACT_APP_API_BASE_URL: "https://food.546digitalservices.com/api"

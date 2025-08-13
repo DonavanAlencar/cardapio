@@ -31,6 +31,60 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Endpoint de diagnóstico completo
+app.get('/api/diagnostic', async (req, res) => {
+  console.log('🔍 Executando diagnóstico completo do sistema...');
+  
+  const diagnostic = {
+    timestamp: new Date().toISOString(),
+    system: {
+      nodeVersion: process.version,
+      platform: process.platform,
+      memory: process.memoryUsage(),
+      uptime: process.uptime()
+    },
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      DB_HOST: process.env.DB_HOST,
+      DB_USER: process.env.DB_USER,
+      DB_NAME: process.env.DB_NAME,
+      DB_PASSWORD: process.env.DB_PASSWORD ? '***' : 'NÃO DEFINIDA',
+      JWT_SECRET: process.env.JWT_SECRET ? '***' : 'NÃO DEFINIDA'
+    },
+    database: {
+      status: 'testing...',
+      connection: null,
+      tables: null,
+      error: null
+    },
+    services: {
+      auth: 'available',
+      cors: 'enabled',
+      jsonParser: 'enabled'
+    }
+  };
+
+  try {
+    // Testa conexão com banco
+    const pool = require('./config/db');
+    const [result] = await pool.query('SELECT 1 as test');
+    diagnostic.database.status = 'connected';
+    diagnostic.database.connection = 'OK';
+    
+    // Lista tabelas disponíveis
+    const [tables] = await pool.query('SHOW TABLES');
+    diagnostic.database.tables = tables.map(t => Object.values(t)[0]);
+    
+  } catch (err) {
+    diagnostic.database.status = 'error';
+    diagnostic.database.error = err.message;
+  }
+
+  console.log('📊 Diagnóstico completo:', JSON.stringify(diagnostic, null, 2));
+  res.json(diagnostic);
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/garcons', garconsRoutes);
 app.use('/api/mesas', mesasRoutes);
