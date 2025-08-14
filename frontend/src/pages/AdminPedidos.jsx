@@ -342,8 +342,10 @@ const AdminPedidos = () => {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Gerenciar Pedidos</h1>
+    <Box className="container mx-auto p-4">
+      <Typography variant="h4" fontWeight="bold" mb={2}>
+        Gerenciar Pedidos
+      </Typography>
       
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -840,7 +842,7 @@ const AdminPedidos = () => {
           </tbody>
         </table>
       </div>
-    </div>
+    </Box>
   );
 };
 

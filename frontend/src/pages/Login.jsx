@@ -236,6 +236,8 @@ export default function Login() {
 
   return (
     <Box
+      component="main"
+      aria-label="login screen"
       sx={{
         minHeight: '100vh',
         display: 'flex',

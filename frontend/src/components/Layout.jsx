@@ -3,19 +3,20 @@ import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Sidebar from './Sidebar';
+import Box from '@mui/material/Box';
 
 const Layout = () => {
   return (
-    <div className="flex flex-col min-h-screen">
+    <Box display="flex" flexDirection="column" minHeight="100vh">
       <Navbar />
-      <div className="flex flex-1 pt-16"> {/* pt-16 para compensar o navbar fixo */}
+      <Box display="flex" flex={1} pt={8}>
         <Sidebar />
-        <main className="flex-grow p-6 bg-gray-50 min-h-[calc(100vh-64px-64px)]"> {/* Ajuste para espaçamento e cor de fundo */}
+        <Box component="main" flexGrow={1} p={3} bgcolor="grey.50" sx={{ minHeight: 'calc(100vh - 128px)' }}>
           <Outlet />
-        </main>
-      </div>
+        </Box>
+      </Box>
       <Footer />
-    </div>
+    </Box>
   );
 };
 

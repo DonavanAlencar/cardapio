@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import jwt_decode from 'jwt-decode';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 const AdminMesas = () => {
   const [tables, setTables] = useState([]);
@@ -113,8 +115,10 @@ const AdminMesas = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Gerenciar Mesas</h1>
+    <Box className="container mx-auto p-4">
+      <Typography variant="h4" fontWeight="bold" mb={2}>
+        Gerenciar Mesas
+      </Typography>
 
       <div className="mb-8 p-4 border rounded shadow-sm">
         <h2 className="text-xl font-semibold mb-2">{editingTable ? 'Editar Mesa' : 'Adicionar Nova Mesa'}</h2>
@@ -220,7 +224,7 @@ const AdminMesas = () => {
           </tbody>
         </table>
       </div>
-    </div>
+    </Box>
   );
 };
 

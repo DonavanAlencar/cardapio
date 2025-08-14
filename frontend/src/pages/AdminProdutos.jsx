@@ -5,6 +5,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 const AdminProdutos = () => {
   const [products, setProducts] = useState([]);
@@ -157,8 +159,10 @@ const AdminProdutos = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Gerenciar Produtos</h1>
+    <Box className="container mx-auto p-4">
+      <Typography variant="h4" fontWeight="bold" mb={2}>
+        Gerenciar Produtos
+      </Typography>
 
       <div className="mb-8 p-4 border rounded shadow-sm">
         <Button variant="contained" color="primary" onClick={openAddModal}>
@@ -275,7 +279,7 @@ const AdminProdutos = () => {
           </tbody>
         </table>
       </div>
-    </div>
+    </Box>
   );
 };
 

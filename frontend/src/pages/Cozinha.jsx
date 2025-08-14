@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 const statusOrder = ['pending', 'preparing', 'done', 'served'];
 const statusLabels = {
@@ -49,8 +51,10 @@ export default function Cozinha() {
   });
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Painel da Cozinha</h1>
+    <Box className="p-4">
+      <Typography variant="h4" fontWeight="bold" mb={2}>
+        Painel da Cozinha
+      </Typography>
       {loading && <div>Carregando...</div>}
       {!loading && statusOrder.map(status => (
         <div key={status} className="mb-6">
@@ -72,6 +76,6 @@ export default function Cozinha() {
           </div>
         </div>
       ))}
-    </div>
+    </Box>
   );
-} 
+}
