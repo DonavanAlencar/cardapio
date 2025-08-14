@@ -2,6 +2,10 @@
 
 Este projeto é um sistema abrangente de gerenciamento e pedidos para restaurantes, desenvolvido para otimizar as operações diárias, desde o atendimento ao cliente até a administração interna.
 
+## Novo layout (prototipado)
+
+Um protótipo inicial do novo layout baseado no design fornecido no Figma foi adicionado em `frontend/src/newDesign/App.tsx`. Ele ainda não está integrado ao build principal e serve como ponto de partida para futuras implementações.
+
 ## Funcionalidades Principais
 
 O sistema abrange as seguintes áreas funcionais:
