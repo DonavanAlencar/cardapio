@@ -1,7 +1,7 @@
 .sidebar {
   width: 260px;
-  background: #fff;
-  border-right: 1px solid #eee;
+  background: var(--color-sidebar);
+  border-right: 1px solid var(--color-sidebar-border);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -13,14 +13,14 @@
 .sidebar-logo {
   font-size: 2rem;
   font-weight: bold;
-  color: #7c3aed;
+  color: var(--color-sidebar-primary);
   padding: 24px 16px 16px 24px;
   min-height: 64px;
 }
 .sidebar-collapse-btn {
   background: none;
   border: none;
-  color: #7c3aed;
+  color: var(--color-sidebar-primary);
   font-size: 1.5rem;
   cursor: pointer;
   outline: none;
@@ -39,7 +39,7 @@
   align-items: center;
   padding: 12px 24px;
   cursor: pointer;
-  color: #333;
+  color: var(--color-sidebar-foreground);
   transition: background 0.2s;
   gap: 12px;
   white-space: nowrap;
@@ -50,32 +50,34 @@
 .sidebar-collapsed .sidebar-submenu {
   display: none;
 }
-.sidebar-item.active, .sidebar-item:hover {
-  background: #f3e8ff;
-  color: #7c3aed;
+.sidebar-item.active,
+.sidebar-item:hover {
+  background: var(--color-sidebar-accent);
+  color: var(--color-sidebar-accent-foreground);
 }
 .sidebar-submenu {
   list-style: none;
   padding-left: 32px;
-  background: #faf5ff;
+  background: var(--color-sidebar-accent);
 }
 .sidebar-submenu li {
   padding: 8px 0;
 }
 .sidebar-submenu .active {
-  color: #7c3aed;
+  color: var(--color-sidebar-primary);
   font-weight: bold;
 }
 .sidebar-footer {
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-sidebar-border);
 }
-.sidebar-lang, .sidebar-logout {
+.sidebar-lang,
+.sidebar-logout {
   background: none;
   border: none;
-  color: #7c3aed;
+  color: var(--color-sidebar-primary);
   font-weight: bold;
   cursor: pointer;
   display: flex;
@@ -99,8 +101,8 @@
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   border-radius: 8px;
   min-width: 140px;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--color-sidebar);
+  border: 1px solid var(--color-sidebar-border);
   z-index: 100;
   animation: fadeIn 0.15s;
 }
@@ -114,7 +116,7 @@
   border: none;
   text-align: left;
   padding: 8px 16px;
-  color: #333;
+  color: var(--color-sidebar-foreground);
   font-size: 0.95rem;
   display: flex;
   align-items: center;
@@ -123,5 +125,5 @@
   border-radius: 0;
 }
 .sidebar-profile-menu button:hover {
-  background: #f3e8ff;
-} 
+  background: var(--color-sidebar-accent);
+}

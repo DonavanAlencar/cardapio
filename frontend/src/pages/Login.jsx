@@ -243,7 +243,7 @@ export default function Login() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(to bottom right, rgba(139,21,56,0.05), rgba(212,175,55,0.05))'
+        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)'
       }}
     >
       <Box sx={{ width: '100%', maxWidth: 420 }}>

@@ -98,7 +98,10 @@ export default function Sidebar() {
   };
 
   return (
-    <div className={`sidebar${collapsed ? ' sidebar-collapsed' : ''}`}> 
+    <div
+      className={`sidebar${collapsed ? ' sidebar-collapsed' : ''}`}
+      style={{ color: 'var(--color-sidebar-foreground)' }}
+    >
       <div className="sidebar-profile flex items-center gap-2 p-4 relative">
         <div
           className="sidebar-avatar cursor-pointer flex items-center gap-2"
@@ -107,23 +110,26 @@ export default function Sidebar() {
           {user?.avatarUrl ? (
             <img src={user.avatarUrl} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl font-bold text-white">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold"
+              style={{ backgroundColor: 'var(--color-muted)', color: 'var(--color-muted-foreground)' }}
+            >
               {user?.name ? user.name[0].toUpperCase() : <AccountCircle fontSize="large" />}
             </div>
           )}
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-semibold text-sm">{user?.name || 'Usuário'}</span>
-              <span className="text-xs text-gray-500">{user?.email || ''}</span>
+              <span className="text-xs" style={{ color: 'var(--color-sidebar-foreground)' }}>{user?.email || ''}</span>
             </div>
           )}
         </div>
         {profileMenu && !collapsed && (
-          <div className="sidebar-profile-menu absolute left-16 top-12 bg-white shadow-lg rounded z-50 min-w-[140px] border">
-            <button className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100" onClick={() => { setProfileMenu(false); navigate('/editar-perfil'); }}>
+          <div className="sidebar-profile-menu absolute left-16 top-12 shadow-lg rounded z-50 min-w-[140px] border">
+            <button className="w-full flex items-center gap-2 px-4 py-2" onClick={() => { setProfileMenu(false); navigate('/editar-perfil'); }}>
               <Edit fontSize="small" /> Editar perfil
             </button>
-            <button className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100" onClick={handleLogout}>
+            <button className="w-full flex items-center gap-2 px-4 py-2" onClick={handleLogout}>
               <Logout fontSize="small" /> Sair
             </button>
           </div>

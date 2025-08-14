@@ -161,8 +161,11 @@ const AdminIngredients = () => {
   };
 
   return (
-    <Box className="container mx-auto p-4">
-      <Typography variant="h4" fontWeight="bold" mb={2}>
+    <Box
+      className="container mx-auto p-4"
+      sx={{ backgroundColor: 'var(--color-background)', color: 'var(--color-foreground)' }}
+    >
+      <Typography variant="h4" fontWeight="bold" mb={2} color="text.primary">
         Gerenciar Ingredientes
       </Typography>
 

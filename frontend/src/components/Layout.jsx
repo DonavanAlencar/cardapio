@@ -11,7 +11,16 @@ const Layout = () => {
       <Navbar />
       <Box display="flex" flex={1} pt={8}>
         <Sidebar />
-        <Box component="main" flexGrow={1} p={3} bgcolor="grey.50" sx={{ minHeight: 'calc(100vh - 128px)' }}>
+        <Box
+          component="main"
+          flexGrow={1}
+          p={3}
+          sx={{
+            minHeight: 'calc(100vh - 128px)',
+            backgroundColor: 'var(--color-background)',
+            color: 'var(--color-foreground)'
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
