@@ -2,6 +2,25 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import debugLog from 'debug';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Tabs,
+  Tab,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Button
+} from '@mui/material';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import TagIcon from '@mui/icons-material/Tag';
+import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 
 export default function Login() {
   const [email, setEmail] = useState('admin@empresa.com');
@@ -9,6 +28,9 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState(null);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [tab, setTab] = useState('email');
+  const [pin, setPin] = useState('');
   const navigate = useNavigate();
   const logUI = debugLog('ui:App');
 
@@ -175,80 +197,208 @@ export default function Login() {
     }
   };
 
+  const handlePinInput = (digit) => {
+    if (pin.length < 4) {
+      setPin((prev) => prev + digit);
+    }
+  };
+
+  const clearPin = () => setPin('');
+
+  const removeLastDigit = () => setPin((prev) => prev.slice(0, -1));
+
+  const handlePinSubmit = async (e) => {
+    e.preventDefault();
+    if (pin.length !== 4) return;
+    setIsLoading(true);
+    try {
+      const res = await api.post('/auth/login-pin', { pin });
+      if (res.data && res.data.token && res.data.user) {
+        localStorage.setItem('token', res.data.token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        if (res.data.user.role === 'admin') {
+          navigate('/admin/pedidos');
+        } else if (res.data.user.role === 'waiter') {
+          navigate('/garcom/mesas');
+        } else {
+          navigate('/new-features');
+        }
+      } else {
+        alert('Resposta inválida do servidor');
+      }
+    } catch (err) {
+      console.error('Erro no login com PIN:', err);
+      alert('Erro no login com PIN');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              placeholder="admin@empresa.com"
-              required
-              className="border w-full p-2 rounded focus:ring-2 focus:ring-blue-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Senha
-            </label>
-            <input
-              type="password"
-              placeholder="admin123"
-              required
-              className="border w-full p-2 rounded focus:ring-2 focus:ring-blue-500"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-          
-          <button
-            type="submit"
-            className={`w-full py-2 px-4 rounded font-medium ${
-              isLoading 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            } text-white`}
-            disabled={isLoading}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(to bottom right, rgba(139,21,56,0.05), rgba(212,175,55,0.05))'
+      }}
+    >
+      <Box sx={{ width: '100%', maxWidth: 420 }}>
+        <Box textAlign="center" mb={4}>
+          <Box
+            className="restaurant-gradient"
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 2
+            }}
           >
-            {isLoading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-        
-        {/* Botão de diagnóstico */}
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => setShowDiagnostic(!showDiagnostic)}
-            className="text-sm text-blue-600 hover:text-blue-800 underline"
+            <RestaurantIcon sx={{ color: '#fff', fontSize: 32 }} />
+          </Box>
+          <Typography variant="h4" fontWeight="bold">RestaurantPro</Typography>
+          <Typography color="text.secondary">Sistema de Gerenciamento</Typography>
+        </Box>
+        <Card className="restaurant-glass">
+          <Tabs
+            value={tab}
+            onChange={(e, v) => setTab(v)}
+            variant="fullWidth"
           >
+            <Tab icon={<MailOutlineIcon fontSize="small" />} iconPosition="start" label="Email" value="email" />
+            <Tab icon={<TagIcon fontSize="small" />} iconPosition="start" label="PIN" value="pin" />
+          </Tabs>
+          <CardContent>
+            {tab === 'email' && (
+              <Box
+                component="form"
+                onSubmit={handleSubmit}
+                sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+              >
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <MailOutlineIcon />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+                <TextField
+                  label="Senha"
+                  type={showPassword ? 'text' : 'password'}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  disabled={isLoading}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlinedIcon />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword((s) => !s)} edge="end">
+                          {showPassword ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={isLoading}
+                  className="restaurant-gradient touch-button"
+                  sx={{ mt: 1 }}
+                >
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
+              </Box>
+            )}
+
+            {tab === 'pin' && (
+              <Box
+                component="form"
+                onSubmit={handlePinSubmit}
+                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: 2 }}
+              >
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {[0, 1, 2, 3].map((idx) => (
+                    <Box
+                      key={idx}
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {pin[idx] ? <LockOutlinedIcon fontSize="small" /> : null}
+                    </Box>
+                  ))}
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, width: '100%', maxWidth: 220 }}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                    <Button key={digit} variant="outlined" onClick={() => handlePinInput(String(digit))} disabled={pin.length >= 4}>
+                      {digit}
+                    </Button>
+                  ))}
+                  <Button variant="outlined" onClick={clearPin}>Limpar</Button>
+                  <Button variant="outlined" onClick={() => handlePinInput('0')} disabled={pin.length >= 4}>0</Button>
+                  <Button variant="outlined" onClick={removeLastDigit}>
+                    <BackspaceOutlinedIcon />
+                  </Button>
+                </Box>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={isLoading || pin.length !== 4}
+                  className="restaurant-gradient touch-button"
+                  sx={{ mt: 2, width: '100%' }}
+                >
+                  {isLoading ? 'Entrando...' : 'Entrar com PIN'}
+                </Button>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        <Box textAlign="center" mt={2}>
+          <Button variant="text" size="small" onClick={() => setShowDiagnostic(!showDiagnostic)}>
             {showDiagnostic ? 'Ocultar' : 'Mostrar'} Diagnóstico
-          </button>
-        </div>
-        
-        {/* Informações de diagnóstico */}
+          </Button>
+        </Box>
+
         {showDiagnostic && diagnosticInfo && (
-          <div className="mt-4 p-4 bg-gray-50 rounded text-xs">
-            <h3 className="font-bold mb-2">🔍 Informações de Diagnóstico</h3>
-            <pre className="whitespace-pre-wrap overflow-auto max-h-40">
+          <Box mt={2} p={2} sx={{ bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Informações de Diagnóstico
+            </Typography>
+            <pre style={{ whiteSpace: 'pre-wrap', overflow: 'auto', maxHeight: 160 }}>
               {JSON.stringify(diagnosticInfo, null, 2)}
             </pre>
-          </div>
+          </Box>
         )}
-        
-        {/* Logs no console para debug */}
-        <div className="mt-4 text-xs text-gray-500 text-center">
+
+        <Typography variant="caption" color="text.secondary" display="block" textAlign="center" mt={2}>
           Verifique o console do navegador para logs detalhados
-        </div>
-      </div>
-    </div>
+        </Typography>
+      </Box>
+    </Box>
   );
 }
