@@ -1,0 +1,276 @@
+.kitchen-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header da Página */
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-title h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2d1b1e;
+}
+
+.page-title p {
+  margin: 0;
+  font-size: 16px;
+  color: #8b8b8b;
+  font-weight: 400;
+}
+
+/* Painel Kanban */
+.kitchen-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  height: calc(100vh - 200px);
+}
+
+.kanban-column {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Cabeçalho da Coluna */
+.column-header {
+  padding: 20px;
+  border-top: 4px solid;
+  background: #f8f9fa;
+}
+
+.column-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.column-icon {
+  font-size: 20px;
+}
+
+.column-info h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d1b1e;
+  flex: 1;
+}
+
+.column-count {
+  background: #e9ecef;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Conteúdo da Coluna */
+.column-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.empty-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8b8b8b;
+  font-size: 14px;
+}
+
+/* Cards dos Pedidos */
+.order-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.order-header {
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.order-status {
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-body {
+  padding: 16px;
+}
+
+.customer-info {
+  margin-bottom: 16px;
+}
+
+.customer-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d1b1e;
+}
+
+.table-info {
+  margin: 0;
+  font-size: 14px;
+  color: #8b8b8b;
+  font-weight: 500;
+}
+
+.order-items {
+  margin-bottom: 16px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  font-size: 14px;
+  color: #2d1b1e;
+  font-weight: 500;
+}
+
+.item-quantity {
+  font-size: 12px;
+  color: #8b8b8b;
+  font-weight: 600;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.observations {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.observations h5 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #856404;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.observations p {
+  margin: 0;
+  font-size: 13px;
+  color: #856404;
+  line-height: 1.4;
+}
+
+.order-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.timer-icon {
+  font-size: 14px;
+}
+
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-btn.details {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #e9ecef;
+}
+
+.action-btn.details:hover {
+  background: #e9ecef;
+}
+
+.action-btn.advance,
+.action-btn.finish,
+.action-btn.deliver {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+}
+
+.action-btn.advance:hover,
+.action-btn.finish:hover,
+.action-btn.deliver:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+  .kitchen-board {
+    grid-template-columns: repeat(2, 1fr);
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .kitchen-board {
+    grid-template-columns: 1fr;
+  }
+  
+  .order-actions {
+    flex-direction: row;
+  }
+  
+  .action-btn {
+    flex: 1;
+  }
+}
