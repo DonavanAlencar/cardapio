@@ -38,3 +38,12 @@ spec:
                 name: cardapio-backend-service
                 port:
                   number: 80
+
+          # Front-new rodando em /new
+          - path: /new
+            pathType: Prefix
+            backend:
+              service:
+                name: cardapio-front-new-service
+                port:
+                  number: 80

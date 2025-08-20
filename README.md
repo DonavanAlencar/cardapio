@@ -63,6 +63,32 @@ O backend fornece a infraestrutura para todas as funcionalidades:
 
 Para configurar e executar o projeto localmente, siga as instruções nos diretórios `frontend` e `backend`.
 
+## 🆕 Front-new (Nova Versão)
+
+O projeto inclui uma nova versão do frontend (`front_new`) desenvolvida com Vite + React, que oferece:
+
+- **Performance otimizada** com Vite
+- **Interface moderna** com Material-UI
+- **Roteamento avançado** com React Router
+- **Componentes reutilizáveis** e bem estruturados
+- **Deploy independente** no Kubernetes
+
+### Acesso ao Front-new
+- **URL**: https://food.546digitalservices.com/new
+- **Porta interna**: 5173
+- **Tecnologia**: Vite + React + Material-UI
+
+### Deploy do Front-new
+```bash
+# Deploy completo (build + deploy)
+./scripts/deploy-front-new-complete.sh [registry] [tag]
+
+# Exemplo
+./scripts/deploy-front-new-complete.sh donavanalencar 1.0
+```
+
+Para mais detalhes sobre o deploy, consulte [DEPLOY-FRONT-NEW.md](DEPLOY-FRONT-NEW.md).
+
 ## 🚀 Implantação em Produção com Traefik e Let's Encrypt
 
 ### Pré-requisitos
@@ -186,6 +212,13 @@ spec:
             backend:
               service:
                 name: cardapio-backend-service
+                port:
+                  number: 80
+          - path: /new
+            pathType: Prefix
+            backend:
+              service:
+                name: cardapio-front-new-service
                 port:
                   number: 80
 ```

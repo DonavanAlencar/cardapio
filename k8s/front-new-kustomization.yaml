@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cardapio
+
+resources:
+- namespace.yaml
+- configmap.yaml
+- secret.yaml
+- deployment.yaml
+- service.yaml
+- front-new-configmap.yaml
+- front-new-deployment.yaml
+- front-new-service.yaml
+- ingress.yaml
+
+commonLabels:
+  app: cardapio
+  version: v1.0.0
+
+images:
+- name: donavanalencar/cardapio-backend
+  newTag: "1.0"
+- name: donavanalencar/cardapio-front-new
+  newTag: "1.0"
