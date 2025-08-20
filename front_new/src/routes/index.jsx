@@ -20,6 +20,7 @@ import AdminProductModifiers from '../pages/Admin/AdminProductModifiers';
 import AdminReports from '../pages/Admin/AdminReports';
 import AdminStockMovements from '../pages/Admin/AdminStockMovements';
 import AdminPedidos from '../pages/Admin/AdminPedidos';
+import AdminIngredients from '../pages/Admin/AdminIngredients';
 
 // Importar páginas do garçom
 import GarcomMesas from '../pages/Garcom/GarcomMesas';
