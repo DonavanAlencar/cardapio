@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import jwt_decode from 'jwt-decode';
+import { useAuth } from '../hooks/useAuth';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout/Layout';
 import Login from '../pages/Login/Login';
 import Dashboard from '../pages/Dashboard/Dashboard';
@@ -32,35 +34,57 @@ import Cardapio from '../pages/Public/Cardapio';
 
 // Componente para rotas privadas
 const PrivateRoute = ({ children, role, roles }) => {
-  const currentToken = localStorage.getItem('token');
-  if (!currentToken) return <Navigate to="/login" />;
+  const { isAuthenticated, canAccess, isLoading } = useAuth();
   
-  try {
-    const user = jwt_decode(currentToken);
-    if (role && user.role !== role) return <Navigate to="/login" />;
-    if (roles && !roles.includes(user.role)) return <Navigate to="/login" />;
-    return children;
-  } catch (error) {
-    console.error('Erro ao decodificar token:', error);
-    localStorage.removeItem('token');
-    return <Navigate to="/login" />;
+  if (isLoading) {
+    return <LoadingSpinner message="Verificando autenticação..." />;
   }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (role && !canAccess(role)) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (roles && !canAccess(null, roles)) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
+// Componente para redirecionar usuários já logados
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <LoadingSpinner message="Verificando autenticação..." />;
+  }
+  
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
 };
 
 export default function RoutesIndex() {
   const { pathname } = useLocation();
   const lowerPath = pathname.toLowerCase();
+  
   if (pathname !== lowerPath) {
     return <Navigate to={lowerPath} replace />;
   }
 
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/cardapio" element={<Cardapio />} />
       
       <Route element={<Layout />}> 
-        <Route index element={<Dashboard />} />
+        <Route index element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         
         {/* Rotas Administrativas */}
         <Route path="admin/garcons" element={<PrivateRoute role="admin"><AdminGarcons /></PrivateRoute>} />
@@ -72,7 +96,7 @@ export default function RoutesIndex() {
         <Route path="admin/reports" element={<PrivateRoute role="admin"><AdminReports /></PrivateRoute>} />
         <Route path="admin/stock-movements" element={<PrivateRoute role="admin"><AdminStockMovements /></PrivateRoute>} />
         <Route path="admin/ingredients" element={<PrivateRoute role="admin"><AdminIngredients /></PrivateRoute>} />
-        <Route path="admin/pedidos" element={<PrivateRoute role="admin"><AdminPedidos /></PrivateRoute>} />
+        <Route path="admin/pedidos" element={<PrivateRoute role="admin"><ErrorBoundary><AdminPedidos /></ErrorBoundary></PrivateRoute>} />
         
         {/* Rotas do Garçom */}
         <Route path="garcom/mesas" element={<PrivateRoute role="waiter"><GarcomMesas /></PrivateRoute>} />
@@ -83,12 +107,12 @@ export default function RoutesIndex() {
         <Route path="cozinha" element={<PrivateRoute roles={['admin','cozinha']}><Kitchen /></PrivateRoute>} />
         
         {/* Rotas Gerais */}
-        <Route path="kitchen" element={<Kitchen />} />
-        <Route path="menu" element={<Menu />} />
-        <Route path="orders" element={<Orders />} />
-        <Route path="stock" element={<Stock />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="ingredients" element={<Ingredients />} />
+        <Route path="kitchen" element={<PrivateRoute><Kitchen /></PrivateRoute>} />
+        <Route path="menu" element={<PrivateRoute><Menu /></PrivateRoute>} />
+        <Route path="orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
+        <Route path="stock" element={<PrivateRoute><Stock /></PrivateRoute>} />
+        <Route path="categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
+        <Route path="ingredients" element={<PrivateRoute><Ingredients /></PrivateRoute>} />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -31,6 +31,30 @@ import {
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import api from '../../services/api';
 
+// Função utilitária para formatar valores monetários de forma segura
+const formatCurrency = (value) => {
+  if (typeof value === 'number') {
+    return value.toFixed(2);
+  }
+  if (typeof value === 'string') {
+    const numValue = parseFloat(value);
+    return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+  }
+  return '0.00';
+};
+
+// Função utilitária para formatar data de forma segura
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleString();
+  } catch (error) {
+    return 'N/A';
+  }
+};
+
 const AdminPedidos = () => {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +103,8 @@ const AdminPedidos = () => {
           setLoading(true);
         }
         const response = await api.get('/orders');
+        console.log('📊 Dados recebidos da API:', response.data);
+        console.log('📊 Estrutura do primeiro pedido:', response.data[0]);
         setPedidos(response.data);
         setError(null); // Limpa erros anteriores
         setLastUpdate(new Date());
@@ -421,9 +447,9 @@ const AdminPedidos = () => {
                   />
                 </TableCell>
                 <TableCell>{pedido.items?.length || 0} itens</TableCell>
-                <TableCell>R$ {pedido.total_amount?.toFixed(2) || '0.00'}</TableCell>
+                <TableCell>R$ {formatCurrency(pedido.total_amount)}</TableCell>
                 <TableCell>
-                  {new Date(pedido.created_at).toLocaleString()}
+                  {formatDate(pedido.created_at)}
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
@@ -564,7 +590,7 @@ const AdminPedidos = () => {
                 {modifiers.filter(m => m.product_id === selectedProduct.id).map(modifier => (
                   <Chip
                     key={modifier.id}
-                    label={`${modifier.name} (+R$ ${modifier.price.toFixed(2)})`}
+                    label={`${modifier.name} (+R$ ${formatCurrency(modifier.price)})`}
                     onClick={() => handleModifierToggle(modifier)}
                     color={selectedModifiers.find(m => m.id === modifier.id) ? 'primary' : 'default'}
                     clickable
@@ -591,7 +617,7 @@ const AdminPedidos = () => {
                   </Typography>
                 )}
                 <Typography variant="body2" color="primary">
-                  R$ {item.total_price.toFixed(2)}
+                  R$ {formatCurrency(item.total_price)}
                 </Typography>
               </Box>
               <IconButton
@@ -606,7 +632,7 @@ const AdminPedidos = () => {
           {pedidoForm.items.length > 0 && (
             <Box textAlign="right" mt={2}>
               <Typography variant="h6">
-                Total: R$ {pedidoForm.items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
+                Total: R$ {formatCurrency(pedidoForm.items.reduce((sum, item) => sum + (typeof item.total_price === 'number' ? item.total_price : 0), 0))}
               </Typography>
             </Box>
           )}

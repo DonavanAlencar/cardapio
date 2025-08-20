@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
+import { API_CONFIG } from '../../config/apiConfig';
 import debugLog from 'debug';
 import {
   Box,
@@ -12,7 +12,9 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Button
+  Button,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
@@ -25,13 +27,15 @@ import BackspaceOutlinedIcon from '@mui/icons-material/BackspaceOutlined';
 export default function Login() {
   const [email, setEmail] = useState('admin@empresa.com');
   const [senha, setSenha] = useState('admin123');
-  const [isLoading, setIsLoading] = useState(false);
   const [diagnosticInfo, setDiagnosticInfo] = useState(null);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [tab, setTab] = useState('email');
   const [pin, setPin] = useState('');
-  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [showError, setShowError] = useState(false);
+  
+  const { login, loginWithPin, isLoading } = useAuth();
   const logUI = debugLog('ui:App');
 
   // Função para testar conectividade com o backend
@@ -40,21 +44,21 @@ export default function Login() {
     
     try {
       // Testa endpoint de health
-      const healthResponse = await api.get('/health');
-      console.log('✅ Health check OK:', healthResponse.data);
+      const healthResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.SYSTEM.HEALTH}`);
+      console.log('✅ Health check OK:', healthResponse.status);
       
       // Testa endpoint de diagnóstico
-      const diagnosticResponse = await api.get('/diagnostic');
-      console.log('🔍 Diagnóstico completo:', diagnosticResponse.data);
+      const diagnosticResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.SYSTEM.DIAGNOSTIC}`);
+      console.log('🔍 Diagnóstico completo:', diagnosticResponse.status);
       
       // Testa endpoint de teste do banco
-      const dbTestResponse = await api.get('/auth/test-db');
-      console.log('🗄️ Teste do banco:', dbTestResponse.data);
+      const dbTestResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.AUTH.TEST_DB}`);
+      console.log('🗄️ Teste do banco:', dbTestResponse.status);
       
       return {
         health: 'OK',
-        diagnostic: diagnosticResponse.data,
-        database: dbTestResponse.data,
+        diagnostic: { status: diagnosticResponse.status },
+        database: { status: dbTestResponse.status },
         timestamp: new Date().toISOString()
       };
       
@@ -63,8 +67,6 @@ export default function Login() {
       return {
         health: 'ERROR',
         error: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
         timestamp: new Date().toISOString()
       };
     }
@@ -87,7 +89,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setError('');
     
     const requestId = Math.random().toString(36).substr(2, 9);
     console.log(`🔐 [${requestId}] Iniciando processo de login...`);
@@ -99,7 +101,8 @@ export default function Login() {
       
       if (!validation.isValid) {
         console.log(`❌ [${requestId}] Validação falhou:`, validation.errors);
-        alert(`Erro de validação: ${validation.errors.join(', ')}`);
+        setError(`Erro de validação: ${validation.errors.join(', ')}`);
+        setShowError(true);
         return;
       }
       
@@ -112,50 +115,21 @@ export default function Login() {
       
       if (connectivityTest.health === 'ERROR') {
         console.log(`❌ [${requestId}] Problema de conectividade detectado`);
-        alert(`Problema de conectividade: ${connectivityTest.error}`);
+        setError(`Problema de conectividade: ${connectivityTest.error}`);
+        setShowError(true);
         return;
       }
       
       console.log(`✅ [${requestId}] Conectividade OK`);
       
-      // 3. Tentativa de login
+      // 3. Tentativa de login usando o contexto
       console.log(`🔐 [${requestId}] Enviando requisição de login...`);
       console.log(`📧 [${requestId}] Email:`, email);
       console.log(`🔑 [${requestId}] Senha:`, senha ? '***' : 'NÃO FORNECIDA');
       
-      const res = await api.post('/auth/login', { 
-        email, 
-        password: senha 
-      });
+      await login(email, senha);
       
-      console.log(`📥 [${requestId}] Resposta recebida:`, {
-        status: res.status,
-        hasToken: !!res.data?.token,
-        hasUser: !!res.data?.user,
-        userRole: res.data?.user?.role
-      });
-      
-      // 4. Verifica se a resposta está correta antes de continuar
-      if (res.data && res.data.token && res.data.user) {
-        console.log(`✅ [${requestId}] Login bem-sucedido para usuário:`, res.data.user.email);
-        console.log(`👤 [${requestId}] Role do usuário:`, res.data.user.role);
-        
-        localStorage.setItem('token', res.data.token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        
-        // Redireciona com base na role do usuário
-        if (res.data.user.role === 'admin') {
-          navigate('/admin/pedidos');
-        } else if (res.data.user.role === 'waiter') {
-          navigate('/garcom/mesas');
-        } else {
-          navigate('/');
-        }
-      } else {
-        // Caso a resposta não seja válida, exibe um erro
-        console.log(`❌ [${requestId}] Resposta inválida do servidor:`, res.data);
-        throw new Error('Resposta inválida do servidor');
-      }
+      console.log(`✅ [${requestId}] Login bem-sucedido`);
       
     } catch (err) {
       console.error(`❌ [${requestId}] Erro no login:`, err);
@@ -172,28 +146,28 @@ export default function Login() {
         // Mensagens de erro específicas baseadas no status
         if (err.response.status === 401) {
           if (err.response.data?.message === 'Usuário não encontrado.') {
-            alert('Usuário não encontrado. Verifique o email.');
+            setError('Usuário não encontrado. Verifique o email.');
           } else if (err.response.data?.message === 'Senha incorreta.') {
-            alert('Senha incorreta. Tente novamente.');
+            setError('Senha incorreta. Tente novamente.');
           } else {
-            alert('Credenciais inválidas.');
+            setError('Credenciais inválidas.');
           }
         } else if (err.response.status === 400) {
-          alert(`Erro de validação: ${err.response.data?.message}`);
+          setError(`Erro de validação: ${err.response.data?.message}`);
         } else if (err.response.status === 500) {
-          alert('Erro interno do servidor. Tente novamente.');
+          setError('Erro interno do servidor. Tente novamente.');
         } else {
-          alert(`Erro ${err.response.status}: ${err.response.data?.message || 'Erro desconhecido'}`);
+          setError(`Erro ${err.response.status}: ${err.response.data?.message || 'Erro desconhecido'}`);
         }
       } else if (err.request) {
         console.log(`❌ [${requestId}] Requisição enviada mas sem resposta:`, err.request);
-        alert('Sem resposta do servidor. Verifique a conectividade.');
+        setError('Sem resposta do servidor. Verifique a conectividade.');
       } else {
         console.log(`❌ [${requestId}] Erro na configuração da requisição:`, err.message);
-        alert(`Erro de configuração: ${err.message}`);
+        setError(`Erro de configuração: ${err.message}`);
       }
-    } finally {
-      setIsLoading(false);
+      
+      setShowError(true);
     }
   };
 
@@ -208,33 +182,27 @@ export default function Login() {
   const handlePinSubmit = async () => {
     if (pin.length !== 4) return;
     
-    setIsLoading(true);
+    setError('');
+    
     try {
-      const res = await api.post('/auth/login-pin', { pin });
-      if (res.data && res.data.token && res.data.user) {
-        localStorage.setItem('token', res.data.token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        
-        if (res.data.user.role === 'admin') {
-          navigate('/admin/pedidos');
-        } else if (res.data.user.role === 'waiter') {
-          navigate('/garcom/mesas');
-        } else {
-          navigate('/');
-        }
-      }
+      await loginWithPin(pin);
+      console.log('✅ Login com PIN bem-sucedido');
     } catch (err) {
       console.error('Erro no login com PIN:', err);
-      alert('PIN incorreto');
+      setError('PIN incorreto. Tente novamente.');
+      setShowError(true);
       setPin('');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
     setPin('');
+    setError('');
+  };
+
+  const handleCloseError = () => {
+    setShowError(false);
   };
 
   return (
@@ -285,6 +253,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 margin="normal"
                 required
+                disabled={isLoading}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -302,6 +271,7 @@ export default function Login() {
                 onChange={(e) => setSenha(e.target.value)}
                 margin="normal"
                 required
+                disabled={isLoading}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -360,6 +330,7 @@ export default function Login() {
                     key={digit}
                     variant="outlined"
                     onClick={() => handlePinInput(digit.toString())}
+                    disabled={isLoading}
                     sx={{ height: 56 }}
                   >
                     {digit}
@@ -368,6 +339,7 @@ export default function Login() {
                 <Button
                   variant="outlined"
                   onClick={() => handlePinInput('backspace')}
+                  disabled={isLoading}
                   sx={{ height: 56 }}
                 >
                   <BackspaceOutlinedIcon />
@@ -375,6 +347,7 @@ export default function Login() {
                 <Button
                   variant="outlined"
                   onClick={() => handlePinInput('0')}
+                  disabled={isLoading}
                   sx={{ height: 56 }}
                 >
                   0
@@ -391,16 +364,39 @@ export default function Login() {
             </Box>
           )}
 
-          {diagnosticInfo && (
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                <strong>Status:</strong> {diagnosticInfo.health}
-                {diagnosticInfo.error && ` - ${diagnosticInfo.error}`}
+          <Box textAlign="center" mt={2}>
+            <Button variant="text" size="small" onClick={() => setShowDiagnostic(!showDiagnostic)}>
+              {showDiagnostic ? 'Ocultar' : 'Mostrar'} Diagnóstico
+            </Button>
+          </Box>
+
+          {showDiagnostic && diagnosticInfo && (
+            <Box mt={2} p={2} sx={{ bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Informações de Diagnóstico
               </Typography>
+              <pre style={{ whiteSpace: 'pre-wrap', overflow: 'auto', maxHeight: 160 }}>
+                {JSON.stringify(diagnosticInfo, null, 2)}
+              </pre>
             </Box>
           )}
+
+          <Typography variant="caption" color="text.secondary" display="block" textAlign="center" mt={2}>
+            Verifique o console do navegador para logs detalhados
+          </Typography>
         </CardContent>
       </Card>
+
+      <Snackbar
+        open={showError}
+        autoHideDuration={6000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
