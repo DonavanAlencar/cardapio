@@ -3,14 +3,17 @@ import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import Sidebar from './Sidebar';
+import './Sidebar.css';
 
 const Layout = () => {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar />
-      <div className="flex flex-1 pt-16"> {/* pt-16 para compensar o navbar fixo */}
-        <Sidebar />
-        <main className="flex-grow p-6 bg-gray-50 min-h-[calc(100vh-64px-64px)]"> {/* Ajuste para espaçamento e cor de fundo */}
+      <div className="flex pt-16">
+        <aside className="shrink-0">
+          <Sidebar />
+        </aside>
+        <main className="flex-1 min-h-[calc(100vh-64px-64px)] p-6">
           <Outlet />
         </main>
       </div>
