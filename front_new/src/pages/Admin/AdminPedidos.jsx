@@ -330,13 +330,15 @@ const AdminPedidos = () => {
   });
 
   const getStatusColor = (status) => {
+    // Deve retornar uma das cores suportadas pelo prop `color` do Chip
+    // Valores válidos: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'
     switch (status) {
-      case 'pending': return 'warning.main';
-      case 'preparing': return 'info.main';
-      case 'ready': return 'success.main';
-      case 'delivered': return 'primary.main';
-      case 'cancelled': return 'error.main';
-      default: return 'grey.500';
+      case 'pending': return 'warning';
+      case 'preparing': return 'info';
+      case 'ready': return 'success';
+      case 'delivered': return 'primary';
+      case 'cancelled': return 'error';
+      default: return 'default';
     }
   };
 
