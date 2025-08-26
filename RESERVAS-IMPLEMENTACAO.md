@@ -113,6 +113,11 @@ Foram implementados triggers para:
 - Métrica de reservas do dia
 - Indicador visual de reservas ativas
 - Atualização em tempo real
+- **Status dinâmico das mesas** considerando reservas e pedidos
+- **Cores automáticas** baseadas no status real (verde=disponível, azul=ocupada, amarelo=reservada)
+- **Indicadores visuais** para pedidos (📋) e reservas (📅)
+- **Tooltips informativos** com detalhes de cliente, horário e valores
+- **Atualização automática** a cada 30 segundos
 
 ## Funcionalidades Principais
 
@@ -145,6 +150,28 @@ Foram implementados triggers para:
 - Validação de dados no frontend
 - Tratamento de erros específicos
 - Confirmações para ações críticas
+
+### 5. Dashboard Dinâmico
+
+- **Status das Mesas em Tempo Real:**
+  - Verde: Mesa disponível
+  - Azul: Mesa ocupada (com pedido ativo)
+  - Amarelo: Mesa reservada (com reserva ativa)
+  
+- **Indicadores Visuais:**
+  - 📋: Mesa com pedido ativo
+  - 📅: Mesa com reserva ativa
+  
+- **Informações Detalhadas:**
+  - Tooltips com nome do cliente
+  - Horário da reserva
+  - Valor do pedido
+  - Status atual da mesa
+  
+- **Atualização Automática:**
+  - Dados atualizados a cada 30 segundos
+  - Sincronização entre reservas e status das mesas
+  - Contadores atualizados em tempo real
 
 ## Configuração e Uso
 

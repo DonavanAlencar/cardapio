@@ -316,6 +316,23 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Indicador de reserva na mesa */
+.table-reservation-indicator {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  font-size: 0.8rem;
+  background-color: #f59e0b;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 /* Seção de Estoque Baixo */
 .low-stock-section {
   background: white;

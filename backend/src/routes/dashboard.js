@@ -166,14 +166,25 @@ router.get('/', requireAuth, async (req, res) => {
       [yesterday]
     );
 
-    // 3. Status das mesas
+    // 3. Status das mesas (incluindo reservas)
     const [tablesResult] = await pool.query(
-      'SELECT t.id, t.table_number, t.capacity, t.status, ' +
-      'COALESCE(o.id, 0) as has_order, ' +
-      'COALESCE(o.total_amount, 0) as order_total ' +
-      'FROM tables t ' +
-      'LEFT JOIN orders o ON t.id = o.table_id AND o.status IN ("open", "in_preparation", "ready") ' +
-      'ORDER BY t.table_number'
+      `SELECT 
+        t.id, 
+        t.table_number, 
+        t.capacity, 
+        t.status,
+        COALESCE(o.id, 0) as has_order, 
+        COALESCE(o.total_amount, 0) as order_total,
+        COALESCE(r.id, 0) as has_reservation,
+        COALESCE(r.reservation_time, '') as reservation_time,
+        COALESCE(r.duration_minutes, 0) as duration_minutes,
+        COALESCE(r.status, '') as reservation_status,
+        COALESCE(c.full_name, '') as customer_name
+      FROM tables t 
+      LEFT JOIN orders o ON t.id = o.table_id AND o.status IN ("open", "in_preparation", "ready")
+      LEFT JOIN table_reservations r ON t.id = r.table_id AND r.status IN ("booked", "seated")
+      LEFT JOIN customers c ON r.customer_id = c.id
+      ORDER BY t.table_number`
     );
 
     // 4. Pedidos ativos
@@ -201,10 +212,12 @@ router.get('/', requireAuth, async (req, res) => {
 
     // 6. Taxa de ocupação (mesas ocupadas vs total)
     const [occupancyResult] = await pool.query(
-      'SELECT ' +
-      'COUNT(CASE WHEN t.status = "occupied" THEN 1 END) as occupied_count, ' +
-      'COUNT(*) as total_count ' +
-      'FROM tables t'
+      `SELECT 
+        COUNT(CASE WHEN t.status = "occupied" THEN 1 END) as occupied_count,
+        COUNT(CASE WHEN t.status = "available" THEN 1 END) as available_count,
+        COUNT(CASE WHEN t.status = "reserved" THEN 1 END) as reserved_count,
+        COUNT(*) as total_count
+      FROM tables t`
     );
 
     // 7. Estoque com baixo nível
@@ -261,7 +274,12 @@ router.get('/', requireAuth, async (req, res) => {
         capacity: table.capacity,
         status: table.status,
         hasOrder: table.has_order > 0,
-        orderTotal: parseFloat(table.order_total).toFixed(2)
+        orderTotal: parseFloat(table.order_total).toFixed(2),
+        hasReservation: table.has_reservation > 0,
+        reservationTime: table.reservation_time,
+        durationMinutes: table.duration_minutes,
+        reservationStatus: table.reservation_status,
+        customerName: table.customer_name
       })),
       recentOrders: activeOrdersResult.map(order => ({
         id: order.id,
@@ -280,7 +298,8 @@ router.get('/', requireAuth, async (req, res) => {
       summary: {
         totalTables: occupancyResult[0].total_count,
         occupiedTables: occupancyResult[0].occupied_count,
-        availableTables: occupancyResult[0].total_count - occupancyResult[0].occupied_count,
+        reservedTables: occupancyResult[0].reserved_count,
+        availableTables: occupancyResult[0].available_count,
         totalSales: todaySales.toFixed(2),
         totalOrders: salesResult[0].total_orders
       }
@@ -298,14 +317,24 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/real-time', requireAuth, async (req, res) => {
   try {
     
-    // Status das mesas em tempo real
+    // Status das mesas em tempo real (incluindo reservas)
     const [tablesResult] = await pool.query(
-      'SELECT t.id, t.table_number, t.status, ' +
-      'COALESCE(o.id, 0) as has_order, ' +
-      'COALESCE(o.total_amount, 0) as order_total ' +
-      'FROM tables t ' +
-      'LEFT JOIN orders o ON t.id = o.table_id AND o.status IN ("open", "in_preparation", "ready") ' +
-      'ORDER BY t.table_number'
+      `SELECT 
+        t.id, 
+        t.table_number, 
+        t.status,
+        COALESCE(o.id, 0) as has_order, 
+        COALESCE(o.total_amount, 0) as order_total,
+        COALESCE(r.id, 0) as has_reservation,
+        COALESCE(r.reservation_time, '') as reservation_time,
+        COALESCE(r.duration_minutes, 0) as duration_minutes,
+        COALESCE(r.status, '') as reservation_status,
+        COALESCE(c.full_name, '') as customer_name
+      FROM tables t 
+      LEFT JOIN orders o ON t.id = o.table_id AND o.status IN ("open", "in_preparation", "ready")
+      LEFT JOIN table_reservations r ON t.id = r.table_id AND r.status IN ("booked", "seated")
+      LEFT JOIN customers c ON r.customer_id = c.id
+      ORDER BY t.table_number`
     );
 
     // Pedidos ativos em tempo real
@@ -327,7 +356,12 @@ router.get('/real-time', requireAuth, async (req, res) => {
         number: table.table_number,
         status: table.status,
         hasOrder: table.has_order > 0,
-        orderTotal: parseFloat(table.order_total).toFixed(2)
+        orderTotal: parseFloat(table.order_total).toFixed(2),
+        hasReservation: table.has_reservation > 0,
+        reservationTime: table.reservation_time,
+        durationMinutes: table.duration_minutes,
+        reservationStatus: table.reservation_status,
+        customerName: table.customer_name
       })),
       activeOrders: activeOrdersResult.map(order => ({
         id: order.id,

@@ -51,11 +51,26 @@ export default function Dashboard() {
   const updateRealTimeData = async () => {
     try {
       const realTimeData = await dashboardService.getRealTimeData();
+      
+      // Atualizar dados básicos
       setDashboardData(prev => ({
         ...prev,
         tables: realTimeData.tables,
         recentOrders: realTimeData.activeOrders
       }));
+      
+      // Atualizar reservas se necessário
+      if (prev?.user?.branch_id) {
+        try {
+          const reservationsData = await dashboardService.getReservationsData(prev.user.branch_id);
+          setDashboardData(prevData => ({
+            ...prevData,
+            reservations: reservationsData.data || []
+          }));
+        } catch (err) {
+          console.error('Erro ao atualizar reservas:', err);
+        }
+      }
     } catch (err) {
       console.error('Erro ao atualizar dados em tempo real:', err);
     }
@@ -95,6 +110,43 @@ export default function Dashboard() {
   const handleReservationSuccess = () => {
     fetchDashboardData();
     updateRealTimeData();
+  };
+
+  // Função helper para calcular o status real das mesas
+  const getTableRealStatus = (table) => {
+    // Se a mesa tem pedido ativo, é ocupada
+    if (table.hasOrder) {
+      return {
+        status: 'occupied',
+        color: dashboardService.mapTableStatusColor('occupied'),
+        text: 'Ocupada',
+        tooltip: `Mesa ${table.number} - Ocupada - Pedido: ${dashboardService.formatCurrency(table.orderTotal)}`
+      };
+    }
+    
+    // Se a mesa tem reserva ativa, é reservada
+    if (table.hasReservation && table.reservationStatus === 'booked') {
+      let tooltip = `Mesa ${table.number} - Reservada - Cliente: ${table.customerName}`;
+      if (table.reservationTime) {
+        const reservationTime = new Date(table.reservationTime);
+        tooltip += ` - ${reservationTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      
+      return {
+        status: 'reserved',
+        color: dashboardService.mapTableStatusColor('reserved'),
+        text: 'Reservada',
+        tooltip
+      };
+    }
+    
+    // Caso contrário, usa o status da tabela
+    return {
+      status: table.status,
+      color: dashboardService.mapTableStatusColor(table.status),
+      text: dashboardService.mapTableStatus(table.status),
+      tooltip: `Mesa ${table.number} - ${dashboardService.mapTableStatus(table.status)}`
+    };
   };
 
   // Loading state
@@ -279,7 +331,7 @@ export default function Dashboard() {
             </div>
             <div className="legend-item">
               <span className="legend-color reserved"></span>
-              <span>Reservada: {summary.totalTables - summary.occupiedTables - summary.availableTables}</span>
+              <span>Reservada: {summary.reservedTables}</span>
             </div>
             {dashboardData.reservations && dashboardData.reservations.length > 0 && (
               <div className="legend-item">
@@ -290,17 +342,24 @@ export default function Dashboard() {
           </div>
 
           <div className="table-grid">
-            {tables.map((table) => (
-              <div 
-                key={table.id} 
-                className="table-button"
-                style={{ backgroundColor: dashboardService.mapTableStatusColor(table.status) }}
-                title={`Mesa ${table.number} - ${dashboardService.mapTableStatus(table.status)}${table.hasOrder ? ` - Pedido: ${dashboardService.formatCurrency(table.orderTotal)}` : ''}`}
-              >
-                {table.number}
-                {table.hasOrder && <div className="table-order-indicator">📋</div>}
-              </div>
-            ))}
+            {tables.map((table) => {
+              const tableStatus = getTableRealStatus(table);
+              
+              return (
+                <div 
+                  key={table.id} 
+                  className="table-button"
+                  style={{ backgroundColor: tableStatus.color }}
+                  title={tableStatus.tooltip}
+                >
+                  {table.number}
+                  {table.hasOrder && <div className="table-order-indicator">📋</div>}
+                  {table.hasReservation && table.reservationStatus === 'booked' && (
+                    <div className="table-reservation-indicator">📅</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
