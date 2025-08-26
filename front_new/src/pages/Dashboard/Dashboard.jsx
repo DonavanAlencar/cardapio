@@ -1,104 +1,191 @@
+import { useState, useEffect } from 'react';
 import './Dashboard.css';
+import dashboardService from '../../services/dashboardService';
+import DashboardDebug from '../../components/DashboardDebug';
 
 export default function Dashboard() {
-  const currentDate = new Date().toLocaleDateString('pt-BR', {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [currentDate] = useState(new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  });
+  }));
 
-  const metrics = [
-    {
-      title: 'Vendas Hoje',
-      value: 'R$ 335.20',
-      change: '+12.5%',
-      changeType: 'positive',
-      icon: '💰'
-    },
-    {
-      title: 'Ticket Médio',
-      value: 'R$ 111.73',
-      change: '+5.2%',
-      changeType: 'positive',
-      icon: '📈'
-    },
-    {
-      title: 'Taxa de Ocupação',
-      value: '33.3%',
-      progress: 33.3,
-      icon: '👥'
-    },
-    {
-      title: 'Pedidos Ativos',
-      value: '3',
-      details: '1 pendentes, 1 preparando',
-      icon: '🛒'
+  // Buscar dados do dashboard
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const data = await dashboardService.getDashboardData();
+      setDashboardData(data);
+      setError(null);
+    } catch (err) {
+      setError('Erro ao carregar dados do dashboard');
+      console.error('Erro:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const tableStatuses = [
-    { number: 1, status: 'occupied', color: '#3b82f6' },
-    { number: 2, status: 'occupied', color: '#3b82f6' },
-    { number: 3, status: 'available', color: '#10b981' },
-    { number: 4, status: 'payment', color: '#ef4444' },
-    { number: 5, status: 'available', color: '#10b981' },
-    { number: 6, status: 'reserved', color: '#f59e0b' }
-  ];
-
-  const recentOrders = [
-    {
-      id: 'M1',
-      items: 2,
-      total: 'R$ 87.80',
-      status: 'Pendente',
-      statusColor: '#ef4444'
-    },
-    {
-      id: 'M2',
-      items: 3,
-      total: 'R$ 172.60',
-      status: 'Preparando',
-      statusColor: '#8b5cf6'
+  // Atualizar dados em tempo real
+  const updateRealTimeData = async () => {
+    try {
+      const realTimeData = await dashboardService.getRealTimeData();
+      setDashboardData(prev => ({
+        ...prev,
+        tables: realTimeData.tables,
+        recentOrders: realTimeData.activeOrders
+      }));
+    } catch (err) {
+      console.error('Erro ao atualizar dados em tempo real:', err);
     }
-  ];
+  };
+
+  // Efeito para carregar dados iniciais
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  // Efeito para atualização em tempo real (a cada 30 segundos)
+  useEffect(() => {
+    const interval = setInterval(updateRealTimeData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <p className="user-date">Carregando...</p>
+        </div>
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Carregando dados do dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <p className="user-date">{currentDate}</p>
+        </div>
+        <div className="error-state">
+          <p>❌ {error}</p>
+          <button onClick={fetchDashboardData} className="retry-button">
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Se não há dados
+  if (!dashboardData) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <h1>Dashboard</h1>
+          <p className="user-date">{currentDate}</p>
+        </div>
+        <div className="no-data-state">
+          <p>Nenhum dado disponível</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { user, metrics, tables, recentOrders, lowStock, summary } = dashboardData;
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
         <h1>Dashboard</h1>
-        <p className="user-date">Carlos Silva • {currentDate}</p>
+        <p className="user-date">{user?.name || 'Usuário'} • {user?.branch || 'Filial'} • {currentDate}</p>
+        <button 
+          onClick={() => setShowDebug(!showDebug)}
+          style={{
+            padding: '8px 16px',
+            fontSize: '14px',
+            backgroundColor: showDebug ? '#ef4444' : '#6b7280',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            marginLeft: '20px'
+          }}
+        >
+          {showDebug ? '🔒 Ocultar Debug' : '🔍 Debug'}
+        </button>
       </div>
 
       {/* Cards de Métricas */}
       <div className="metrics-grid">
-        {metrics.map((metric, index) => (
-          <div key={index} className="metric-card">
-            <div className="metric-header">
-              <h3>{metric.title}</h3>
-              <span className="metric-icon">{metric.icon}</span>
-            </div>
-            <div className="metric-value">{metric.value}</div>
-            {metric.change && (
-              <div className={`metric-change ${metric.changeType}`}>
-                {metric.change} desde ontem
-              </div>
-            )}
-            {metric.progress && (
-              <div className="metric-progress">
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{ width: `${metric.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-            {metric.details && (
-              <div className="metric-details">{metric.details}</div>
-            )}
+        <div className="metric-card">
+          <div className="metric-header">
+            <h3>Vendas Hoje</h3>
+            <span className="metric-icon">💰</span>
           </div>
-        ))}
+          <div className="metric-value">
+            {dashboardService.formatCurrency(metrics.salesToday.value)}
+          </div>
+          {metrics.salesToday.change && (
+            <div className={`metric-change ${metrics.salesToday.changeType}`}>
+              {metrics.salesToday.changeType === 'positive' ? '+' : ''}{metrics.salesToday.change}% desde ontem
+            </div>
+          )}
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <h3>Ticket Médio</h3>
+            <span className="metric-icon">📈</span>
+          </div>
+          <div className="metric-value">
+            {dashboardService.formatCurrency(metrics.avgTicket.value)}
+          </div>
+          {metrics.avgTicket.change && (
+            <div className={`metric-change ${metrics.avgTicket.changeType}`}>
+              {metrics.avgTicket.changeType === 'positive' ? '+' : ''}{metrics.avgTicket.change}% desde ontem
+            </div>
+          )}
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <h3>Taxa de Ocupação</h3>
+            <span className="metric-icon">👥</span>
+          </div>
+          <div className="metric-value">{metrics.occupancyRate.value}%</div>
+          <div className="metric-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${metrics.occupancyRate.progress}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <h3>Pedidos Ativos</h3>
+            <span className="metric-icon">🛒</span>
+          </div>
+          <div className="metric-value">{metrics.activeOrders.value}</div>
+          {metrics.activeOrders.details && (
+            <div className="metric-details">{metrics.activeOrders.details}</div>
+          )}
+        </div>
       </div>
 
       {/* Conteúdo Inferior */}
@@ -111,30 +198,28 @@ export default function Dashboard() {
           <div className="table-legend">
             <div className="legend-item">
               <span className="legend-color available"></span>
-              <span>Disponível: 2</span>
+              <span>Disponível: {summary.availableTables}</span>
             </div>
             <div className="legend-item">
               <span className="legend-color occupied"></span>
-              <span>Ocupada: 2</span>
+              <span>Ocupada: {summary.occupiedTables}</span>
             </div>
             <div className="legend-item">
               <span className="legend-color reserved"></span>
-              <span>Reservada: 1</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-color payment"></span>
-              <span>Aguarda pagto: 1</span>
+              <span>Reservada: {summary.totalTables - summary.occupiedTables - summary.availableTables}</span>
             </div>
           </div>
 
           <div className="table-grid">
-            {tableStatuses.map((table) => (
+            {tables.map((table) => (
               <div 
-                key={table.number} 
+                key={table.id} 
                 className="table-button"
-                style={{ backgroundColor: table.color }}
+                style={{ backgroundColor: dashboardService.mapTableStatusColor(table.status) }}
+                title={`Mesa ${table.number} - ${dashboardService.mapTableStatus(table.status)}${table.hasOrder ? ` - Pedido: ${dashboardService.formatCurrency(table.orderTotal)}` : ''}`}
               >
                 {table.number}
+                {table.hasOrder && <div className="table-order-indicator">📋</div>}
               </div>
             ))}
           </div>
@@ -146,25 +231,70 @@ export default function Dashboard() {
           <p className="section-subtitle">Últimos pedidos em andamento</p>
           
           <div className="orders-list">
-            {recentOrders.map((order) => (
-              <div key={order.id} className="order-item">
-                <div className="order-header">
-                  <div className="order-id">{order.id}</div>
-                  <span 
-                    className="order-status"
-                    style={{ backgroundColor: order.statusColor }}
-                  >
-                    {order.status}
-                  </span>
+            {recentOrders.length > 0 ? (
+              recentOrders.map((order) => (
+                <div key={order.id} className="order-item">
+                  <div className="order-header">
+                    <div className="order-id">M{order.table || order.id}</div>
+                    <span 
+                      className="order-status"
+                      style={{ backgroundColor: dashboardService.mapOrderStatusColor(order.status) }}
+                    >
+                      {dashboardService.mapOrderStatus(order.status)}
+                    </span>
+                  </div>
+                  <div className="order-details">
+                    {order.items} item(s) - {dashboardService.formatCurrency(order.total)}
+                  </div>
+                  <div className="order-time">
+                    {dashboardService.formatDate(order.createdAt)}
+                  </div>
                 </div>
-                <div className="order-details">
-                  {order.items} item(s) - {order.total}
-                </div>
+              ))
+            ) : (
+              <div className="no-orders">
+                <p>Nenhum pedido ativo no momento</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
+
+        {/* Estoque Baixo */}
+        {lowStock.length > 0 && (
+          <div className="low-stock-section">
+            <h2>Estoque Baixo</h2>
+            <p className="section-subtitle">Ingredientes que precisam de reposição</p>
+            
+            <div className="stock-list">
+              {lowStock.map((item, index) => (
+                <div key={index} className="stock-item">
+                  <div className="stock-name">{item.name}</div>
+                  <div className="stock-levels">
+                    <span className="current-stock">Atual: {item.current}</span>
+                    <span className="min-stock">Mín: {item.minimum}</span>
+                    <span className="stock-percentage">{item.percentage}%</span>
+                  </div>
+                  <div className="stock-progress">
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill warning" 
+                        style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Componente de Debug */}
+      {showDebug && (
+        <div style={{ marginTop: '2rem', borderTop: '2px solid #e5e7eb', paddingTop: '2rem' }}>
+          <DashboardDebug />
+        </div>
+      )}
     </div>
   );
 }

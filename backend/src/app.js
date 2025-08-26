@@ -19,6 +19,7 @@ const paymentsRoutes = require('./routes/payments');
 const paymentMethodsRoutes = require('./routes/paymentMethods');
 const kitchenRoutes = require('./routes/kitchen');
 const customersRoutes = require('./routes/customers');
+const dashboardRoutes = require('./routes/dashboard');
 //const debugStartup = require('debug')('app:startup');
 //const debugDB      = require('debug')('app:db');
 
@@ -29,6 +30,21 @@ app.use(express.json());
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Teste simples do dashboard
+app.get('/api/dashboard-test', (req, res) => {
+  res.json({ 
+    message: 'Dashboard test endpoint funcionando!',
+    timestamp: new Date().toISOString(),
+    routes: [
+      '/api/health',
+      '/api/dashboard-test',
+      '/api/dashboard',
+      '/api/dashboard/simple-test',
+      '/api/dashboard/debug'
+    ]
+  });
 });
 
 // Endpoint de diagnóstico completo
@@ -103,6 +119,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/payment-methods', paymentMethodsRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/customers', customersRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

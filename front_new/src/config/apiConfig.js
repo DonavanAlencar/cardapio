@@ -1,7 +1,15 @@
 // Configurações da API
 export const API_CONFIG = {
-  // URL base da API
-  BASE_URL: 'https://food.546digitalservices.com/api',
+  // URL base da API - Detecta automaticamente se é desenvolvimento ou produção
+  get BASE_URL() {
+    const isDevelopment = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.includes('localhost');
+    
+    return isDevelopment 
+      ? 'http://localhost:4000/api'
+      : 'https://food.546digitalservices.com/api';
+  },
   
   // Timeout das requisições
   TIMEOUT: 10000,
@@ -13,6 +21,14 @@ export const API_CONFIG = {
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
     TEST_DB: '/auth/test-db',
+  },
+  
+  // Endpoints do dashboard
+  DASHBOARD: {
+    MAIN: '/dashboard',
+    REAL_TIME: '/dashboard/real-time',
+    SIMPLE_TEST: '/dashboard/simple-test',
+    DEBUG: '/dashboard/debug',
   },
   
   // Endpoints de sistema
@@ -70,6 +86,26 @@ export const API_CONFIG = {
     USERS: '/reports/users',
   },
 };
+
+// Função para obter URL completa de um endpoint
+export const getApiUrl = (endpoint) => {
+  return `${API_CONFIG.BASE_URL}${endpoint}`;
+};
+
+// Função para verificar se está em desenvolvimento
+export const isDevelopment = () => {
+  return window.location.hostname === 'localhost' || 
+         window.location.hostname === '127.0.0.1' ||
+         window.location.hostname.includes('localhost');
+};
+
+// Log da configuração atual
+console.log('🌐 [API Config] Configuração carregada:', {
+  hostname: window.location.hostname,
+  isDevelopment: isDevelopment(),
+  baseURL: API_CONFIG.BASE_URL,
+  timestamp: new Date().toISOString()
+});
 
 // Configurações de autenticação
 export const AUTH_CONFIG = {

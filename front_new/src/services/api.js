@@ -1,9 +1,18 @@
 import axios from 'axios';
 import { isTokenExpired, removeStoredToken } from '../utils/authUtils';
 
-// Configuração hardcoded para resolver o problema de Mixed Content
-// Em produção, isso deve ser configurado via variáveis de ambiente
-const baseURL = 'https://food.546digitalservices.com/api';
+// Configuração da API - Desenvolvimento vs Produção
+// Em desenvolvimento, usar localhost; em produção, usar o domínio real
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const baseURL = isDevelopment 
+  ? 'http://localhost:4000/api' 
+  : 'https://food.546digitalservices.com/api';
+
+console.log('🌐 [API] Configuração:', { 
+  hostname: window.location.hostname, 
+  isDevelopment, 
+  baseURL 
+});
 
 const api = axios.create({
   baseURL,
