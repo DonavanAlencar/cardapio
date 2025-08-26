@@ -1,5 +1,5 @@
 const express = require('express');
-const pool = require('../config/db');
+const productController = require('../../controllers/productController');
 const auth = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -11,84 +11,34 @@ const authorizeAdminOrManager = (req, res, next) => {
   next();
 };
 
-// Rota para listar todos os produtos
-router.get('/', async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      `SELECT
-         p.id,
-         p.name,
-         p.description,
-         p.sku,
-         p.status,
-         p.category_id,
-         pc.name as category_name,
-         pp.price
-       FROM products p
-       JOIN product_categories pc ON p.category_id = pc.id
-       LEFT JOIN product_prices pp ON p.id = pp.product_id AND (pp.end_date IS NULL OR pp.end_date >= CURDATE())
-       ORDER BY p.name`
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('Erro ao buscar produtos:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
-  }
-});
+// Rota para listar todos os produtos com filtros e paginação
+router.get('/', productController.listProducts);
+
+// Rota para estatísticas dos produtos
+router.get('/stats', productController.getProductStats);
+
+// Rota para buscar produtos populares
+router.get('/popular', productController.getPopularProducts);
+
+// Rota para buscar produtos com estoque baixo
+router.get('/low-stock', productController.getLowStockProducts);
+
+// Rota para busca de produtos (autocomplete)
+router.get('/search', productController.searchProducts);
+
+// Rota para buscar produtos por categoria
+router.get('/category/:category_id', productController.getProductsByCategory);
+
+// Rota para buscar produto por ID
+router.get('/:id', productController.getProductById);
 
 // Rota para criar um novo produto (apenas admin/gerente)
-router.post('/', auth, authorizeAdminOrManager, async (req, res) => {
-  const { category_id, name, description, sku, status } = req.body;
-  if (!category_id || !name) {
-    return res.status(400).json({ message: 'ID da categoria e nome do produto são obrigatórios.' });
-  }
-  try {
-    const [result] = await pool.query(
-      'INSERT INTO products (category_id, name, description, sku, status) VALUES (?, ?, ?, ?, ?)',
-      [category_id, name, description, sku, status || 'active']
-    );
-    res.status(201).json({ id: result.insertId, category_id, name, description, sku, status: status || 'active' });
-  } catch (err) {
-    console.error('Erro ao criar produto:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
-  }
-});
+router.post('/', auth, authorizeAdminOrManager, productController.createProduct);
 
 // Rota para atualizar um produto (apenas admin/gerente)
-router.put('/:id', auth, authorizeAdminOrManager, async (req, res) => {
-  const { id } = req.params;
-  const { category_id, name, description, sku, status } = req.body;
-  if (!category_id || !name) {
-    return res.status(400).json({ message: 'ID da categoria e nome do produto são obrigatórios.' });
-  }
-  try {
-    const [result] = await pool.query(
-      'UPDATE products SET category_id = ?, name = ?, description = ?, sku = ?, status = ? WHERE id = ?',
-      [category_id, name, description, sku, status || 'active', id]
-    );
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Produto não encontrado.' });
-    }
-    res.json({ id, category_id, name, description, sku, status: status || 'active' });
-  } catch (err) {
-    console.error('Erro ao atualizar produto:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
-  }
-});
+router.put('/:id', auth, authorizeAdminOrManager, productController.updateProduct);
 
 // Rota para deletar um produto (apenas admin/gerente)
-router.delete('/:id', auth, authorizeAdminOrManager, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [result] = await pool.query('DELETE FROM products WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Produto não encontrado.' });
-    }
-    res.status(204).send(); // No Content
-  } catch (err) {
-    console.error('Erro ao deletar produto:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
-  }
-});
+router.delete('/:id', auth, authorizeAdminOrManager, productController.deleteProduct);
 
 module.exports = router;
