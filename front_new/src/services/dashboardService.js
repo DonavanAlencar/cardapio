@@ -13,6 +13,18 @@ class DashboardService {
     }
   }
 
+  // Buscar dados de reservas para o dashboard
+  async getReservationsData(branchId = 1) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await api.get(`/reservations?branch_id=${branchId}&date=${today}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar dados de reservas:', error);
+      return { data: [] };
+    }
+  }
+
   // Buscar dados em tempo real
   async getRealTimeData() {
     try {
@@ -20,6 +32,35 @@ class DashboardService {
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar dados em tempo real:', error);
+      throw error;
+    }
+  }
+
+  // Buscar reservas do dia
+  async getTodayReservations() {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await api.get(`/reservations?date=${today}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar reservas do dia:', error);
+      throw error;
+    }
+  }
+
+  // Verificar disponibilidade de mesa
+  async checkTableAvailability(branchId, reservationTime, durationMinutes = 90) {
+    try {
+      const response = await api.get('/reservations/availability/check', {
+        params: {
+          branch_id: branchId,
+          reservation_time: reservationTime,
+          duration_minutes: durationMinutes
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao verificar disponibilidade:', error);
       throw error;
     }
   }

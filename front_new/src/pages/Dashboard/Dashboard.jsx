@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import './Dashboard.css';
 import dashboardService from '../../services/dashboardService';
 import DashboardDebug from '../../components/DashboardDebug';
+import ReservationsList from '../../components/ReservationsList';
+import ReservationModal from '../../components/ReservationModal';
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [showReservations, setShowReservations] = useState(false);
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [editingReservation, setEditingReservation] = useState(null);
   const [currentDate] = useState(new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
@@ -20,6 +25,18 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const data = await dashboardService.getDashboardData();
+      
+      // Buscar dados de reservas se disponível
+      if (data.user?.branch_id) {
+        try {
+          const reservationsData = await dashboardService.getReservationsData(data.user.branch_id);
+          data.reservations = reservationsData.data || [];
+        } catch (err) {
+          console.error('Erro ao buscar reservas:', err);
+          data.reservations = [];
+        }
+      }
+      
       setDashboardData(data);
       setError(null);
     } catch (err) {
@@ -54,6 +71,31 @@ export default function Dashboard() {
     const interval = setInterval(updateRealTimeData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Funções para gerenciar reservas
+  const handleShowReservations = () => {
+    setShowReservations(!showReservations);
+  };
+
+  const handleCreateReservation = () => {
+    setEditingReservation(null);
+    setShowReservationModal(true);
+  };
+
+  const handleEditReservation = (reservation) => {
+    setEditingReservation(reservation);
+    setShowReservationModal(true);
+  };
+
+  const handleCloseReservationModal = () => {
+    setShowReservationModal(false);
+    setEditingReservation(null);
+  };
+
+  const handleReservationSuccess = () => {
+    fetchDashboardData();
+    updateRealTimeData();
+  };
 
   // Loading state
   if (loading) {
@@ -111,21 +153,36 @@ export default function Dashboard() {
       <div className="dashboard-header">
         <h1>Dashboard</h1>
         <p className="user-date">{user?.name || 'Usuário'} • {user?.branch || 'Filial'} • {currentDate}</p>
-        <button 
-          onClick={() => setShowDebug(!showDebug)}
-          style={{
-            padding: '8px 16px',
-            fontSize: '14px',
-            backgroundColor: showDebug ? '#ef4444' : '#6b7280',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            marginLeft: '20px'
-          }}
-        >
-          {showDebug ? '🔒 Ocultar Debug' : '🔍 Debug'}
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={handleShowReservations}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              backgroundColor: showReservations ? '#10b981' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            {showReservations ? '📋 Ocultar Reservas' : '📋 Ver Reservas'}
+          </button>
+          <button 
+            onClick={() => setShowDebug(!showDebug)}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              backgroundColor: showDebug ? '#ef4444' : '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            {showDebug ? '🔒 Ocultar Debug' : '🔍 Debug'}
+          </button>
+        </div>
       </div>
 
       {/* Cards de Métricas */}
@@ -186,6 +243,22 @@ export default function Dashboard() {
             <div className="metric-details">{metrics.activeOrders.details}</div>
           )}
         </div>
+
+        <div className="metric-card">
+          <div className="metric-header">
+            <h3>Reservas Hoje</h3>
+            <span className="metric-icon">📋</span>
+          </div>
+          <div className="metric-value">
+            {dashboardData.reservations ? dashboardData.reservations.length : 0}
+          </div>
+          <div className="metric-details">
+            {dashboardData.reservations ? 
+              `${dashboardData.reservations.filter(r => r.status === 'booked').length} ativas` : 
+              '0 ativas'
+            }
+          </div>
+        </div>
       </div>
 
       {/* Conteúdo Inferior */}
@@ -208,6 +281,12 @@ export default function Dashboard() {
               <span className="legend-color reserved"></span>
               <span>Reservada: {summary.totalTables - summary.occupiedTables - summary.availableTables}</span>
             </div>
+            {dashboardData.reservations && dashboardData.reservations.length > 0 && (
+              <div className="legend-item">
+                <span className="legend-color reservations"></span>
+                <span>Reservas hoje: {dashboardData.reservations.length}</span>
+              </div>
+            )}
           </div>
 
           <div className="table-grid">
@@ -289,12 +368,31 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Seção de Reservas */}
+      {showReservations && (
+        <div style={{ marginTop: '2rem', borderTop: '2px solid #e5e7eb', paddingTop: '2rem' }}>
+          <ReservationsList 
+            branchId={user?.branch_id || 1}
+            onRefresh={handleReservationSuccess}
+          />
+        </div>
+      )}
+
       {/* Componente de Debug */}
       {showDebug && (
         <div style={{ marginTop: '2rem', borderTop: '2px solid #e5e7eb', paddingTop: '2rem' }}>
           <DashboardDebug />
         </div>
       )}
+
+      {/* Modal de Reserva */}
+      <ReservationModal
+        isOpen={showReservationModal}
+        onClose={handleCloseReservationModal}
+        onSuccess={handleReservationSuccess}
+        reservation={editingReservation}
+        branchId={user?.branch_id || 1}
+      />
     </div>
   );
 }

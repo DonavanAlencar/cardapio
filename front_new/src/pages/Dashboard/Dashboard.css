@@ -166,6 +166,10 @@
   background: #f59e0b;
 }
 
+.legend-color.reservations {
+  background: #8b5cf6;
+}
+
 .legend-color.payment {
   background: #ef4444;
 }

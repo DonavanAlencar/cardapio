@@ -72,6 +72,18 @@ export const API_CONFIG = {
     STATUS: '/tables/:id/status',
   },
   
+  // Endpoints de reservas
+  RESERVATIONS: {
+    LIST: '/reservations',
+    CREATE: '/reservations',
+    UPDATE: '/reservations/:id',
+    DELETE: '/reservations/:id',
+    GET: '/reservations/:id',
+    AVAILABILITY: '/reservations/availability/check',
+    BY_CUSTOMER: '/reservations/customer/:customer_id',
+    STATS: '/reservations/stats/summary',
+  },
+  
   // Endpoints de estoque
   STOCK: {
     LIST: '/stock',

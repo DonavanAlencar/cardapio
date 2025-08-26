@@ -19,6 +19,7 @@ const paymentsRoutes = require('./routes/payments');
 const paymentMethodsRoutes = require('./routes/paymentMethods');
 const kitchenRoutes = require('./routes/kitchen');
 const customersRoutes = require('./routes/customers');
+const reservationsRoutes = require('./routes/reservations');
 const dashboardRoutes = require('./routes/dashboard');
 //const debugStartup = require('debug')('app:startup');
 //const debugDB      = require('debug')('app:db');
@@ -119,6 +120,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/payment-methods', paymentMethodsRoutes);
 app.use('/api/kitchen', kitchenRoutes);
 app.use('/api/customers', customersRoutes);
+app.use('/api/reservations', reservationsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 const PORT = process.env.PORT || 4000;
