@@ -411,7 +411,7 @@ export default function Dashboard() {
                   style={{ backgroundColor: tableStatus.color }}
                   title={tableStatus.tooltip}
                 >
-                  {table.number}
+                  Mesa {table.number}
                   {table.hasOrder && <div className="table-order-indicator">📋</div>}
                   {table.hasReservation && table.reservationStatus === 'booked' && (
                     <div className="table-reservation-indicator">📅</div>
@@ -432,7 +432,7 @@ export default function Dashboard() {
               recentOrders.map((order) => (
                 <div key={order.id} className="order-item">
                   <div className="order-header">
-                    <div className="order-id">M{order.table || order.id}</div>
+                    <div className="order-id">Mesa {order.table || order.id}</div>
                     <span 
                       className="order-status"
                       style={{ backgroundColor: dashboardService.mapOrderStatusColor(order.status) }}

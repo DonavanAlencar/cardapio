@@ -106,6 +106,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 32px;
+  margin-top: 2rem;
 }
 
 .table-status-section,
@@ -135,8 +136,8 @@
 /* Status das Mesas */
 .table-legend {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -146,6 +147,7 @@
   gap: 8px;
   font-size: 13px;
   color: #8b8b8b;
+  white-space: nowrap;
 }
 
 .legend-color {
@@ -177,21 +179,26 @@
 .table-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 20px;
+  justify-items: center;
 }
 
 .table-button {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 14px;
   cursor: pointer;
   transition: transform 0.2s ease;
+  text-align: center;
+  line-height: 1.2;
+  padding: 8px;
+  position: relative;
 }
 
 .table-button:hover {
@@ -220,16 +227,17 @@
 }
 
 .order-id {
-  width: 32px;
+  min-width: 60px;
   height: 32px;
   background: #e9ecef;
-  border-radius: 50%;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
   color: #6c757d;
+  padding: 0 12px;
 }
 
 .order-status {
@@ -302,14 +310,14 @@
 /* Indicador de pedido na mesa */
 .table-order-indicator {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -8px;
+  right: -8px;
   font-size: 0.8rem;
   background-color: #ef4444;
   color: white;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,14 +327,14 @@
 /* Indicador de reserva na mesa */
 .table-reservation-indicator {
   position: absolute;
-  top: -5px;
-  left: -5px;
+  top: -8px;
+  left: -8px;
   font-size: 0.8rem;
   background-color: #f59e0b;
   color: white;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -431,12 +439,24 @@
 }
 
 @media (max-width: 768px) {
+  .dashboard-bottom {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
   .metrics-grid {
     grid-template-columns: 1fr;
   }
   
   .table-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .table-button {
+    width: 70px;
+    height: 70px;
+    font-size: 12px;
   }
 
   .stock-levels {
@@ -451,5 +471,34 @@
   .spinner {
     width: 32px;
     height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-status-section,
+  .recent-orders-section {
+    padding: 16px;
+  }
+
+  .table-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .table-button {
+    width: 80px;
+    height: 80px;
+    font-size: 13px;
+  }
+
+  .order-id {
+    min-width: 50px;
+    font-size: 11px;
+    padding: 0 8px;
+  }
+
+  .table-legend {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
