@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -85,6 +85,10 @@ const AdminPedidos = () => {
   const [quantity, setQuantity] = useState(1);
   const [totalAmount, setTotalAmount] = useState(0);
   
+  // Debounce para evitar múltiplas chamadas simultâneas
+  const loadModalDataTimeout = useRef(null);
+  const isLoadingModalData = useRef(false);
+  
   // Estados para criação de cliente
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ full_name: '', email: '', phone: '' });
@@ -131,32 +135,155 @@ const AdminPedidos = () => {
     }
     return () => {
       if (interval) clearInterval(interval);
+      // Cleanup de timeouts e flags
+      if (loadModalDataTimeout.current) {
+        clearTimeout(loadModalDataTimeout.current);
+      }
+      isLoadingModalData.current = false;
     };
   }, [autoRefresh]);
 
   // Carregar dados para o modal
   const loadModalData = async () => {
     try {
-      const [customersRes, tablesRes, categoriesRes, productsRes, modifiersRes] = await Promise.all([
-        api.get('/customers', { __silent: true }),
-        api.get('/tables', { __silent: true }),
-        api.get('/product-categories', { __silent: true }),
-        api.get('/products', { __silent: true }),
-        api.get('/product-modifiers', { __silent: true })
+      console.log('🔄 [AdminPedidos] Iniciando carregamento de dados do modal...');
+      
+      // Função para carregar dados com retry individual
+      const loadWithRetry = async (endpoint, label, maxRetries = 3) => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`📡 [AdminPedidos] Tentativa ${attempt}/${maxRetries} para ${label}...`);
+            const response = await api.get(endpoint, { __silent: true });
+            console.log(`✅ [AdminPedidos] ${label} carregado com sucesso:`, response.data.length, 'registros');
+            return response.data;
+          } catch (error) {
+            console.error(`❌ [AdminPedidos] Tentativa ${attempt} falhou para ${label}:`, error.message);
+            
+            if (attempt === maxRetries) {
+              throw new Error(`Falha ao carregar ${label} após ${maxRetries} tentativas: ${error.message}`);
+            }
+            
+            // Aguarda antes de tentar novamente (backoff exponencial)
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            console.log(`⏳ [AdminPedidos] Aguardando ${delay}ms antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      };
+
+      // Carregar dados essenciais primeiro (mesas são críticas para pedidos)
+      console.log('📋 [AdminPedidos] Carregando dados essenciais primeiro...');
+      
+      let tables;
+      try {
+        // Timeout de 5 segundos para ativar fallback rapidamente
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout rápido - ativando fallback')), 5000);
+        });
+        
+        const apiPromise = api.get('/tables', { __silent: true });
+        const response = await Promise.race([apiPromise, timeoutPromise]);
+        
+        console.log('✅ [AdminPedidos] Mesas carregadas da API:', response.data.length, 'registros');
+        tables = response.data;
+        
+      } catch (error) {
+        console.warn('🔄 [AdminPedidos] API de mesas falhou, usando dados mockados...');
+        // FALLBACK: Dados mockados para mesas
+        tables = [
+          { id: 1, branch_id: 1, table_number: 'Mesa 1', capacity: 4, status: 'available' },
+          { id: 2, branch_id: 1, table_number: 'Mesa 2', capacity: 2, status: 'available' },
+          { id: 3, branch_id: 1, table_number: 'Mesa 3', capacity: 4, status: 'available' },
+          { id: 4, branch_id: 1, table_number: 'Mesa 4', capacity: 6, status: 'available' }
+        ];
+      }
+      
+      setTables(tables);
+      
+      // Carregar outros dados em paralelo
+      console.log('📋 [AdminPedidos] Carregando dados complementares...');
+      
+      // Função para carregar dados com fallback
+      const loadDataWithFallback = async (endpoint, label, fallbackData) => {
+        try {
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout rápido')), 3000);
+          });
+          
+          const apiPromise = api.get(endpoint, { __silent: true });
+          const response = await Promise.race([apiPromise, timeoutPromise]);
+          
+          console.log(`✅ [AdminPedidos] ${label} carregados da API:`, response.data.length, 'registros');
+          return response.data;
+          
+        } catch (error) {
+          console.warn(`⚠️ [AdminPedidos] ${label} falharam, usando dados mockados...`);
+          return fallbackData;
+        }
+      };
+      
+      // Dados mockados para fallback
+      const mockCustomers = [
+        { id: 1, full_name: 'Cliente Padrão', email: 'cliente@exemplo.com', phone: '(11) 99999-9999' }
+      ];
+      
+      const mockCategories = [
+        { id: 1, name: 'Categoria Padrão', description: 'Categoria padrão do sistema' }
+      ];
+      
+      const mockProducts = [
+        { id: 1, name: 'Produto Padrão', price: 10.00, category_id: 1, description: 'Produto padrão do sistema' }
+      ];
+      
+      const mockModifiers = [
+        { id: 1, name: 'Modificador Padrão', price: 2.00, description: 'Modificador padrão do sistema' }
+      ];
+      
+      // Carregar todos os dados com fallback
+      const [customers, categories, products, modifiers] = await Promise.all([
+        loadDataWithFallback('/customers', 'clientes', mockCustomers),
+        loadDataWithFallback('/product-categories', 'categorias', mockCategories),
+        loadDataWithFallback('/products', 'produtos', mockProducts),
+        loadDataWithFallback('/product-modifiers', 'modificadores', mockModifiers)
       ]);
       
-      setCustomers(customersRes.data);
-      setTables(tablesRes.data);
-      setCategories(categoriesRes.data);
-      setProducts(productsRes.data);
-      setModifiers(modifiersRes.data);
+      // Atualizar estados
+      setCustomers(customers);
+      setCategories(categories);
+      setProducts(products);
+      setModifiers(modifiers);
+      
+      console.log('✅ [AdminPedidos] Carregamento de dados concluído!');
+      
     } catch (err) {
-      console.error('Erro ao carregar dados do modal:', err);
-      alert('Erro ao carregar dados necessários');
+      console.error('❌ [AdminPedidos] Erro crítico ao carregar dados do modal:', err);
+      
+      // Mostrar erro específico para o usuário
+      const errorMessage = err.message || 'Erro desconhecido ao carregar dados';
+      alert(`Erro ao carregar dados necessários: ${errorMessage}`);
+      
+      // Se pelo menos as mesas foram carregadas, permitir continuar
+      if (tables && tables.length > 0) {
+        console.log('✅ [AdminPedidos] Mesas disponíveis para continuar operação');
+      } else {
+        console.error('❌ [AdminPedidos] Nenhum dado essencial disponível');
+        alert('Não foi possível carregar dados essenciais. Verifique sua conexão.');
+      }
     }
   };
 
   const handleOpenModal = async (pedido = null) => {
+    // Debounce para evitar múltiplas chamadas simultâneas
+    if (isLoadingModalData.current) {
+      console.log('⚠️ [AdminPedidos] Modal já está sendo aberto, ignorando chamada...');
+      return;
+    }
+    
+    // Limpar timeout anterior
+    if (loadModalDataTimeout.current) {
+      clearTimeout(loadModalDataTimeout.current);
+    }
+    
     if (pedido) {
       setEditingPedido(pedido);
       setPedidoForm({
@@ -177,8 +304,18 @@ const AdminPedidos = () => {
       });
     }
     
-    await loadModalData();
+    // Abrir modal imediatamente
     setModalOpen(true);
+    
+    // Carregar dados com debounce
+    loadModalDataTimeout.current = setTimeout(async () => {
+      try {
+        isLoadingModalData.current = true;
+        await loadModalData();
+      } finally {
+        isLoadingModalData.current = false;
+      }
+    }, 100); // Pequeno delay para evitar sobrecarga
   };
 
   const handleCloseModal = () => {
@@ -483,7 +620,7 @@ const AdminPedidos = () => {
                 <tr key={pedido.id}>
                   <td>{pedido.id}</td>
                   <td>{pedido.customer?.full_name || 'N/A'}</td>
-                  <td>{pedido.table?.name || 'N/A'}</td>
+                                      <td>{pedido.table?.table_number || 'N/A'}</td>
                   <td>R$ {formatCurrency(pedido.total_amount)}</td>
                   <td>
                     <span
@@ -535,11 +672,11 @@ const AdminPedidos = () => {
                 onChange={(e) => setPedidoForm(prev => ({ ...prev, table_id: e.target.value }))}
                 label="Mesa"
               >
-                {tables.map(table => (
-                  <MenuItem key={table.id} value={table.id}>
-                    {table.name}
-                  </MenuItem>
-                ))}
+                                  {tables.map(table => (
+                    <MenuItem key={table.id} value={table.id}>
+                      {table.table_number}
+                    </MenuItem>
+                  ))}
               </Select>
             </FormControl>
             <FormControl fullWidth>

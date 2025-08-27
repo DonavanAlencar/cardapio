@@ -25,9 +25,56 @@ const notificationsRoutes = require('./routes/notifications');
 //const debugStartup = require('debug')('app:startup');
 //const debugDB      = require('debug')('app:db');
 
+// Middleware para limitar conexões simultâneas
+const connectionLimiter = (req, res, next) => {
+  // Contador simples de conexões ativas
+  if (!req.app.locals.activeConnections) {
+    req.app.locals.activeConnections = 0;
+  }
+  
+  if (req.app.locals.activeConnections > 50) { // Limite de 50 conexões simultâneas
+    console.warn('⚠️ [APP] Muitas conexões simultâneas, rejeitando requisição');
+    return res.status(503).json({ 
+      error: 'Servidor sobrecarregado',
+      message: 'Muitas requisições simultâneas. Tente novamente em alguns segundos.'
+    });
+  }
+  
+  req.app.locals.activeConnections++;
+  
+  res.on('finish', () => {
+    req.app.locals.activeConnections--;
+  });
+  
+  next();
+};
+
+// Middleware de timeout global para evitar travamentos
+const globalTimeout = (timeoutMs = 30000) => {
+  return (req, res, next) => {
+    const timer = setTimeout(() => {
+      console.error(`⏰ [APP] Timeout global de ${timeoutMs}ms excedido para ${req.method} ${req.url}`);
+      if (!res.headersSent) {
+        res.status(408).json({
+          error: 'Request Timeout',
+          message: `Requisição excedeu o tempo limite de ${timeoutMs}ms`
+        });
+      }
+    }, timeoutMs);
+    
+    res.on('finish', () => {
+      clearTimeout(timer);
+    });
+    
+    next();
+  };
+};
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(globalTimeout(25000)); // Timeout global de 25s
+app.use(connectionLimiter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

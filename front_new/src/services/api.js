@@ -17,7 +17,7 @@ console.log('🌐 [API] Configuração:', {
 
 const api = axios.create({
   baseURL,
-  timeout: 10000, // Timeout de 10 segundos
+  timeout: 10000, // Timeout reduzido para 10 segundos para ativar fallback rapidamente
 });
 
 // Interceptor para incluir token de autenticação
@@ -129,6 +129,33 @@ export const refreshToken = async () => {
     removeStoredToken();
     throw error;
   }
+};
+
+// Função para fazer requisições com retry
+export const apiWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 [API] Tentativa ${attempt}/${maxRetries} para ${config.url}`);
+      return await api(config);
+    } catch (error) {
+      lastError = error;
+      
+      // Se for o último erro ou não for um erro de timeout, não tenta novamente
+      if (attempt === maxRetries || error.code !== 'ECONNABORTED') {
+        break;
+      }
+      
+      console.warn(`⚠️ [API] Timeout na tentativa ${attempt}, tentando novamente em ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Aumenta o delay exponencialmente
+      delay *= 2;
+    }
+  }
+  
+  throw lastError;
 };
 
 // Função para fazer logout
