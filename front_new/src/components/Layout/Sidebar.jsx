@@ -25,11 +25,11 @@ export default function Sidebar() {
       active: pathname === '/kitchen'
     },
     { 
-      to: '/orders', 
+      to: '/admin/pedidos', 
       label: 'Pedidos (Admin)', 
       icon: '📋',
       badge: 2,
-      active: pathname === '/orders',
+      active: pathname === '/admin/pedidos',
       expandable: true
     },
     { 
