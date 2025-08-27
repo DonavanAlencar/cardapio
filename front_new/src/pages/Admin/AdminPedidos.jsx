@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import api from '../../services/api';
+import '../Orders/Orders.css';
 
 // Função utilitária para formatar valores monetários de forma segura
 const formatCurrency = (value) => {
@@ -353,6 +354,17 @@ const AdminPedidos = () => {
     }
   };
 
+  const getStatusHex = (status) => {
+    switch (status) {
+      case 'pending': return '#ef4444';
+      case 'preparing': return '#8b1538';
+      case 'ready': return '#f59e0b';
+      case 'delivered': return '#10b981';
+      case 'cancelled': return '#6b7280';
+      default: return '#6b7280';
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -361,128 +373,142 @@ const AdminPedidos = () => {
     );
   }
 
+  // Summary numbers for cards
+  const totalPedidos = pedidos.length;
+  const pendentes = pedidos.filter(p => p.status === 'pending').length;
+  const prontos = pedidos.filter(p => p.status === 'ready').length;
+  const valorTotal = formatCurrency(pedidos.reduce((acc, p) => acc + (typeof p.total_amount === 'number' ? p.total_amount : 0), 0));
+
   return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Gestão de Pedidos
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenModal()}
-        >
-          Novo Pedido
-        </Button>
-      </Box>
+    <div className="orders-page">
+      <div className="page-header">
+        <div className="page-title">
+          <h1>Gerenciar Pedidos</h1>
+          <p>Controle completo dos pedidos do restaurante</p>
+        </div>
+        <button className="add-order-btn" onClick={() => handleOpenModal()}>
+          + ADICIONAR PEDIDO
+        </button>
+      </div>
 
-      {/* Filtros */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" gap={2} alignItems="center">
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              label="Status"
-            >
-              <MenuItem value="">Todos</MenuItem>
-              <MenuItem value="pending">Pendente</MenuItem>
-              <MenuItem value="preparing">Preparando</MenuItem>
-              <MenuItem value="ready">Pronto</MenuItem>
-              <MenuItem value="delivered">Entregue</MenuItem>
-              <MenuItem value="cancelled">Cancelado</MenuItem>
-            </Select>
-          </FormControl>
-          
-          <TextField
-            label="Buscar por cliente"
-            value={customerFilter}
-            onChange={(e) => setCustomerFilter(e.target.value)}
-            sx={{ minWidth: 200 }}
-          />
-          
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-            }
-            label="Atualização automática"
-          />
-          
+      <div className="summary-cards">
+        <div className="summary-card">
+          <div className="card-icon">🛒</div>
+          <div className="card-content">
+            <h3>Total de Pedidos</h3>
+            <span className="card-value">{totalPedidos}</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="card-icon">⏰</div>
+          <div className="card-content">
+            <h3>Pendentes</h3>
+            <span className="card-value">{pendentes}</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="card-icon">✅</div>
+          <div className="card-content">
+            <h3>Prontos</h3>
+            <span className="card-value">{prontos}</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="card-icon">💰</div>
+          <div className="card-content">
+            <h3>Valor Total</h3>
+            <span className="card-value">R$ {valorTotal}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="filters-section">
+        <div className="search-filter">
+          <div className="search-bar">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Filtrar por Cliente"
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+            />
+          </div>
+          <div className="status-filter">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">Todos os Status</option>
+              <option value="pending">Pendente</option>
+              <option value="preparing">Preparando</option>
+              <option value="ready">Pronto</option>
+              <option value="delivered">Entregue</option>
+              <option value="cancelled">Cancelado</option>
+            </select>
+          </div>
+        </div>
+        <div className="filter-info">
+          <span>{filteredPedidos.length} de {pedidos.length} pedidos</span>
           {lastUpdate && (
-            <Typography variant="body2" color="text.secondary">
-              Última atualização: {lastUpdate.toLocaleTimeString()}
-            </Typography>
+            <span style={{ marginLeft: 12 }}>Última atualização: {lastUpdate.toLocaleTimeString()}</span>
           )}
-        </Box>
-      </Paper>
+          <span style={{ marginLeft: 12 }}>
+            Auto atualização:
+            <FormControlLabel
+              control={<Switch checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />}
+              label=""
+            />
+          </span>
+        </div>
+      </div>
 
-      {/* Tabela de Pedidos */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Cliente</TableCell>
-              <TableCell>Mesa</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Itens</TableCell>
-              <TableCell>Total</TableCell>
-              <TableCell>Data</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredPedidos.map((pedido) => (
-              <TableRow key={pedido.id}>
-                <TableCell>{pedido.id}</TableCell>
-                <TableCell>{pedido.customer?.full_name || 'N/A'}</TableCell>
-                <TableCell>{pedido.table?.name || 'N/A'}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={getStatusLabel(pedido.status)}
-                    color={getStatusColor(pedido.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{pedido.items?.length || 0} itens</TableCell>
-                <TableCell>R$ {formatCurrency(pedido.total_amount)}</TableCell>
-                <TableCell>
-                  {formatDate(pedido.created_at)}
-                </TableCell>
-                <TableCell>
-                  <Box display="flex" gap={1}>
-                    <Button
-                      size="small"
-                      onClick={() => handleOpenModal(pedido)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleDeletePedido(pedido.id)}
-                    >
-                      Excluir
-                    </Button>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <div className="orders-table-section">
+        <div className="section-header">
+          <h2>Lista de Pedidos</h2>
+          <p>Todos os pedidos registrados no sistema</p>
+        </div>
 
-      {/* Modal de Pedido */}
-      <Dialog
-        open={modalOpen}
-        onClose={handleCloseModal}
-        maxWidth="md"
-        fullWidth
-      >
+        <div className="table-container">
+          <table className="orders-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>CLIENTE</th>
+                <th>MESA</th>
+                <th>TOTAL</th>
+                <th>STATUS</th>
+                <th>DATA</th>
+                <th>AÇÕES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPedidos.map((pedido) => (
+                <tr key={pedido.id}>
+                  <td>{pedido.id}</td>
+                  <td>{pedido.customer?.full_name || 'N/A'}</td>
+                  <td>{pedido.table?.name || 'N/A'}</td>
+                  <td>R$ {formatCurrency(pedido.total_amount)}</td>
+                  <td>
+                    <span
+                      className="status-badge"
+                      style={{ backgroundColor: getStatusHex(pedido.status) }}
+                    >
+                      {getStatusLabel(pedido.status)}
+                    </span>
+                  </td>
+                  <td>{formatDate(pedido.created_at)}</td>
+                  <td>
+                    <div className="action-buttons">
+                      <button className="action-btn edit" onClick={() => handleOpenModal(pedido)}>✏️</button>
+                      <button className="action-btn view" onClick={() => handleDeletePedido(pedido.id)}>🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal mantém MUI para UX consistente */}
+      <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingPedido ? 'Editar Pedido' : 'Novo Pedido'}
         </DialogTitle>
@@ -502,7 +528,6 @@ const AdminPedidos = () => {
                 ))}
               </Select>
             </FormControl>
-            
             <FormControl fullWidth>
               <InputLabel>Mesa</InputLabel>
               <Select
@@ -517,7 +542,6 @@ const AdminPedidos = () => {
                 ))}
               </Select>
             </FormControl>
-            
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
               <Select
@@ -534,11 +558,9 @@ const AdminPedidos = () => {
             </FormControl>
           </Box>
 
-          {/* Seleção de Produtos */}
           <Typography variant="h6" gutterBottom>
             Adicionar Itens
           </Typography>
-          
           <Box display="flex" gap={2} mb={2}>
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Categoria</InputLabel>
@@ -555,7 +577,6 @@ const AdminPedidos = () => {
                 ))}
               </Select>
             </FormControl>
-            
             <Autocomplete
               options={filteredProducts}
               getOptionLabel={(option) => option.name}
@@ -564,7 +585,6 @@ const AdminPedidos = () => {
               renderInput={(params) => <TextField {...params} label="Produto" />}
               sx={{ minWidth: 200 }}
             />
-            
             <TextField
               type="number"
               label="Quantidade"
@@ -572,17 +592,11 @@ const AdminPedidos = () => {
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
               sx={{ width: 100 }}
             />
-            
-            <Button
-              variant="contained"
-              onClick={addItemToOrder}
-              disabled={!selectedProduct || quantity <= 0}
-            >
+            <Button variant="contained" onClick={addItemToOrder} disabled={!selectedProduct || quantity <= 0}>
               Adicionar
             </Button>
           </Box>
 
-          {/* Modificadores */}
           {selectedProduct && (
             <Box mb={2}>
               <Typography variant="subtitle2" gutterBottom>
@@ -602,11 +616,9 @@ const AdminPedidos = () => {
             </Box>
           )}
 
-          {/* Itens do Pedido */}
           <Typography variant="h6" gutterBottom>
             Itens do Pedido
           </Typography>
-          
           {pedidoForm.items.map((item, index) => (
             <Box key={index} display="flex" justifyContent="space-between" alignItems="center" p={1} border={1} borderColor="grey.300" borderRadius={1} mb={1}>
               <Box>
@@ -622,15 +634,11 @@ const AdminPedidos = () => {
                   R$ {formatCurrency(item.total_price)}
                 </Typography>
               </Box>
-              <IconButton
-                color="error"
-                onClick={() => removeItemFromOrder(index)}
-              >
+              <IconButton color="error" onClick={() => removeItemFromOrder(index)}>
                 <RemoveIcon />
               </IconButton>
             </Box>
           ))}
-
           {pedidoForm.items.length > 0 && (
             <Box textAlign="right" mt={2}>
               <Typography variant="h6">
@@ -639,19 +647,14 @@ const AdminPedidos = () => {
             </Box>
           )}
         </DialogContent>
-        
         <DialogActions>
           <Button onClick={handleCloseModal}>Cancelar</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={isSubmitting || pedidoForm.items.length === 0}
-          >
+          <Button onClick={handleSubmit} variant="contained" disabled={isSubmitting || pedidoForm.items.length === 0}>
             {isSubmitting ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 
