@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const router = express.Router();
 const debugAuth = require('debug')('app:auth');
+const auth = require('../middleware/authMiddleware');
 
 // 1) Verifica se a secret do JWT está definida
 if (!process.env.JWT_SECRET) {
@@ -183,3 +184,41 @@ router.post('/login', async (req, res) => {
 });
 
 module.exports = router;
+// Retorna informações do usuário autenticado
+router.get('/me', auth(), async (req, res) => {
+  try {
+    const userPayload = req.user;
+
+    // Buscar informações adicionais do usuário, incluindo role atualizada
+    const [rows] = await pool.query(
+      `SELECT 
+         a.id,
+         a.username,
+         a.email,
+         a.branch_id,
+         c.name as role
+       FROM users a
+       INNER JOIN user_roles b ON b.user_id = a.id
+       INNER JOIN roles c ON c.id = b.role_id
+       WHERE a.id = ?
+       LIMIT 1`,
+      [userPayload.id]
+    );
+
+    const user = rows && rows[0] ? rows[0] : userPayload;
+
+    return res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        branch_id: user.branch_id,
+        role: user.role
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('❌ Erro no /me:', err);
+    return res.status(500).json({ message: 'Erro ao obter usuário atual' });
+  }
+});

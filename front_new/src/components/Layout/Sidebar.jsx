@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './Sidebar.css';
 
 export default function Sidebar() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
   
   const menuItems = [
     { 
@@ -61,10 +63,10 @@ export default function Sidebar() {
 
       {/* Perfil do Usuário */}
       <div className="user-profile">
-        <div className="user-avatar">CS</div>
+        <div className="user-avatar">{(user?.username || 'US').slice(0,2).toUpperCase()}</div>
         <div className="user-info">
-          <h3>Carlos Silva</h3>
-          <p>Manager</p>
+          <h3>{user?.username || 'Usuário'}</h3>
+          <p>{user?.role || '—'}</p>
         </div>
       </div>
 
