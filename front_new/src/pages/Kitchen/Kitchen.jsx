@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
   CardActions,
   Button,
   Chip,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -19,16 +17,27 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
-  Divider,
-  Alert,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Alert,
+  Snackbar,
+  Tooltip,
+  Badge,
+  CircularProgress,
+  Paper
 } from '@mui/material';
-import KitchenIcon from '@mui/icons-material/Kitchen';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import TimerIcon from '@mui/icons-material/Timer';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import {
+  Kitchen as KitchenIcon,
+  Timer as TimerIcon,
+  CheckCircle as CheckCircleIcon,
+  PlayArrow as PlayArrowIcon,
+  Stop as StopIcon,
+  Refresh as RefreshIcon,
+  Visibility as VisibilityIcon
+} from '@mui/icons-material';
 import api from '../../services/api';
+import webSocketService from '../../services/websocket';
+import './Kitchen.css';
 
 const Kitchen = () => {
   const [orders, setOrders] = useState([]);
@@ -37,19 +46,76 @@ const Kitchen = () => {
   const [orderDetailOpen, setOrderDetailOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('info');
 
   useEffect(() => {
     fetchOrders();
     
-    let interval;
-    if (autoRefresh) {
-      interval = setInterval(fetchOrders, 15000); // Atualiza a cada 15 segundos
-    }
+    // Configurar WebSocket para atualizações em tempo real
+    console.log('🔌 [Kitchen] Configurando WebSocket...');
     
-    return () => {
-      if (interval) clearInterval(interval);
+    // Entrar na sala da cozinha
+    webSocketService.emit('join:room', 'kitchen');
+    
+    // Escutar atualizações de pedidos
+    const handleOrdersUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de pedidos recebida:', data);
+      if (data.orders) {
+        const kitchenOrders = data.orders.filter(order => 
+          ['pending', 'preparing', 'ready'].includes(order.status)
+        );
+        setOrders(kitchenOrders);
+      }
     };
-  }, [autoRefresh]);
+    
+    // Escutar mudanças de status
+    const handleStatusChange = (data) => {
+      console.log('📡 [WebSocket] Mudança de status recebida:', data);
+      if (data.orderId && data.newStatus) {
+        setOrders(prev => prev.map(order => 
+          order.id === data.orderId ? { ...order, status: data.newStatus } : order
+        ));
+        
+        // Mostrar notificação
+        setSnackbarMessage(`Pedido #${data.orderId} mudou para ${data.newStatus}`);
+        setSnackbarSeverity('info');
+        setSnackbarOpen(true);
+      }
+    };
+    
+    // Escutar novos pedidos
+    const handleNewOrder = (data) => {
+      console.log('📡 [WebSocket] Novo pedido recebido:', data);
+      if (data.order && ['pending', 'preparing', 'ready'].includes(data.order.status)) {
+        setOrders(prev => [data.order, ...prev]);
+        
+        // Mostrar notificação
+        setSnackbarMessage(`Novo pedido #${data.order.id} recebido!`);
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+      }
+    };
+    
+    // Registrar listeners
+    webSocketService.on('orders:updated', handleOrdersUpdate);
+    webSocketService.on('order:status_changed', handleStatusChange);
+    webSocketService.on('order:created', handleNewOrder);
+    
+    // Cleanup function
+    return () => {
+      console.log('🧹 [Kitchen] Limpando WebSocket...');
+      
+      // Sair da sala
+      webSocketService.emit('leave:room', 'kitchen');
+      
+      // Remover listeners
+      webSocketService.off('orders:updated', handleOrdersUpdate);
+      webSocketService.off('order:status_changed', handleStatusChange);
+      webSocketService.off('order:created', handleNewOrder);
+    };
+  }, []); // Removido autoRefresh dependency
 
   const fetchOrders = async () => {
     try {

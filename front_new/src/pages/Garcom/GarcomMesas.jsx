@@ -3,29 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
   CardActions,
   Button,
-  Chip,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Alert
+  Chip,
+  Alert,
+  Snackbar,
+  Tooltip,
+  Badge
 } from '@mui/material';
-import TableRestaurantIcon from '@mui/icons-material/TableRestaurant';
-import AddIcon from '@mui/icons-material/Add';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
+import {
+  TableRestaurant as TableIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Visibility as VisibilityIcon,
+  Person as PersonIcon,
+  Phone as PhoneIcon,
+  Note as NoteIcon
+} from '@mui/icons-material';
 import api from '../../services/api';
+import webSocketService from '../../services/websocket';
+import './GarcomMesas.css';
 
 const GarcomMesas = () => {
   const [tables, setTables] = useState([]);
@@ -42,9 +47,58 @@ const GarcomMesas = () => {
 
   useEffect(() => {
     fetchTables();
-    // Atualização automática a cada 30 segundos
-    const interval = setInterval(fetchTables, 30000);
-    return () => clearInterval(interval);
+    
+    // Configurar WebSocket para atualizações em tempo real
+    console.log('🔌 [GarcomMesas] Configurando WebSocket...');
+    
+    // Entrar na sala de mesas
+    webSocketService.emit('join:room', 'garcom-mesas');
+    
+    // Escutar atualizações de mesas
+    const handleTablesUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de mesas recebida:', data);
+      if (data.tables) {
+        setTables(data.tables);
+      }
+    };
+    
+    // Escutar mudanças de status de mesa
+    const handleTableStatusChange = (data) => {
+      console.log('📡 [WebSocket] Mudança de status de mesa recebida:', data);
+      if (data.tableId && data.newStatus) {
+        setTables(prev => prev.map(table => 
+          table.id === data.tableId ? { ...table, status: data.newStatus } : table
+        ));
+      }
+    };
+    
+    // Escutar novos pedidos em mesas
+    const handleTableOrderUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de pedido em mesa recebida:', data);
+      if (data.tableId && data.orderId) {
+        setTables(prev => prev.map(table => 
+          table.id === data.tableId ? { ...table, current_order_id: data.orderId, status: 'occupied' } : table
+        ));
+      }
+    };
+    
+    // Registrar listeners
+    webSocketService.on('tables:updated', handleTablesUpdate);
+    webSocketService.on('table:status_changed', handleTableStatusChange);
+    webSocketService.on('table:order_updated', handleTableOrderUpdate);
+    
+    // Cleanup function
+    return () => {
+      console.log('🧹 [GarcomMesas] Limpando WebSocket...');
+      
+      // Sair da sala
+      webSocketService.emit('leave:room', 'garcom-mesas');
+      
+      // Remover listeners
+      webSocketService.off('tables:updated', handleTablesUpdate);
+      webSocketService.off('table:status_changed', handleTableStatusChange);
+      webSocketService.off('table:order_updated', handleTableOrderUpdate);
+    };
   }, []);
 
   const fetchTables = async () => {

@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import api from '../../services/api';
+import webSocketService from '../../services/websocket';
 import '../Orders/Orders.css';
 
 // Função utilitária para formatar valores monetários de forma segura
@@ -128,20 +129,76 @@ const AdminPedidos = () => {
     // Primeira carga com loading
     fetchPedidos(true);
     
-    // Atualizações automáticas sem loading (a cada 10 segundos)
-    let interval;
-    if (autoRefresh) {
-      interval = setInterval(() => fetchPedidos(false), 10000);
-    }
+    // Configurar WebSocket para atualizações em tempo real
+    console.log('🔌 [AdminPedidos] Configurando WebSocket...');
+    
+    // Entrar na sala de pedidos
+    webSocketService.emit('join:room', 'admin-pedidos');
+    
+    // Escutar atualizações de pedidos
+    const handlePedidosUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de pedidos recebida:', data);
+      if (data.pedidos) {
+        setPedidos(data.pedidos);
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Escutar mudanças de status
+    const handleStatusChange = (data) => {
+      console.log('📡 [WebSocket] Mudança de status recebida:', data);
+      if (data.pedidoId && data.newStatus) {
+        setPedidos(prev => prev.map(p => 
+          p.id === data.pedidoId ? { ...p, status: data.newStatus } : p
+        ));
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Escutar novos pedidos
+    const handleNewPedido = (data) => {
+      console.log('📡 [WebSocket] Novo pedido recebido:', data);
+      if (data.pedido) {
+        setPedidos(prev => [data.pedido, ...prev]);
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Escutar pedidos deletados
+    const handlePedidoDeleted = (data) => {
+      console.log('📡 [WebSocket] Pedido deletado recebido:', data);
+      if (data.pedidoId) {
+        setPedidos(prev => prev.filter(p => p.id !== data.pedidoId));
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Registrar listeners
+    webSocketService.on('pedidos:updated', handlePedidosUpdate);
+    webSocketService.on('pedido:status_changed', handleStatusChange);
+    webSocketService.on('pedido:created', handleNewPedido);
+    webSocketService.on('pedido:deleted', handlePedidoDeleted);
+    
+    // Cleanup function
     return () => {
-      if (interval) clearInterval(interval);
+      console.log('🧹 [AdminPedidos] Limpando WebSocket...');
+      
+      // Sair da sala
+      webSocketService.emit('leave:room', 'admin-pedidos');
+      
+      // Remover listeners
+      webSocketService.off('pedidos:updated', handlePedidosUpdate);
+      webSocketService.off('pedido:status_changed', handleStatusChange);
+      webSocketService.off('pedido:created', handleNewPedido);
+      webSocketService.off('pedido:deleted', handlePedidoDeleted);
+      
       // Cleanup de timeouts e flags
       if (loadModalDataTimeout.current) {
         clearTimeout(loadModalDataTimeout.current);
       }
       isLoadingModalData.current = false;
     };
-  }, [autoRefresh]);
+  }, []); // Removido autoRefresh dependency
 
   // Carregar dados para o modal
   const loadModalData = async () => {

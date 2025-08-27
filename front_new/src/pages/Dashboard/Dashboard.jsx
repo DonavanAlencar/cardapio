@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './Dashboard.css';
 import dashboardService from '../../services/dashboardService';
+import webSocketService from '../../services/websocket';
 import DashboardDebug from '../../components/DashboardDebug';
 import ReservationsList from '../../components/ReservationsList';
 import ReservationModal from '../../components/ReservationModal';
@@ -81,10 +82,68 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // Efeito para atualização em tempo real (a cada 30 segundos)
+  // Efeito para atualização em tempo real via WebSocket
   useEffect(() => {
-    const interval = setInterval(updateRealTimeData, 30000);
-    return () => clearInterval(interval);
+    console.log('🔌 [Dashboard] Configurando WebSocket...');
+    
+    // Entrar na sala do dashboard
+    webSocketService.emit('join:room', 'dashboard');
+    
+    // Escutar atualizações em tempo real
+    const handleDashboardUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização do dashboard recebida:', data);
+      if (data.dashboardData) {
+        setDashboardData(data.dashboardData);
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Escutar atualizações de mesas
+    const handleTablesUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de mesas recebida:', data);
+      if (data.tables) {
+        setTables(data.tables);
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Escutar atualizações de pedidos
+    const handleOrdersUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de pedidos recebida:', data);
+      if (data.orders) {
+        setOrders(data.orders);
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Escutar atualizações de reservas
+    const handleReservationsUpdate = (data) => {
+      console.log('📡 [WebSocket] Atualização de reservas recebida:', data);
+      if (data.reservations) {
+        setReservations(data.reservations);
+        setLastUpdate(new Date());
+      }
+    };
+    
+    // Registrar listeners
+    webSocketService.on('dashboard:updated', handleDashboardUpdate);
+    webSocketService.on('tables:updated', handleTablesUpdate);
+    webSocketService.on('orders:updated', handleOrdersUpdate);
+    webSocketService.on('reservations:updated', handleReservationsUpdate);
+    
+    // Cleanup function
+    return () => {
+      console.log('🧹 [Dashboard] Limpando WebSocket...');
+      
+      // Sair da sala
+      webSocketService.emit('leave:room', 'dashboard');
+      
+      // Remover listeners
+      webSocketService.off('dashboard:updated', handleDashboardUpdate);
+      webSocketService.off('tables:updated', handleTablesUpdate);
+      webSocketService.off('orders:updated', handleOrdersUpdate);
+      webSocketService.off('reservations:updated', handleReservationsUpdate);
+    };
   }, []);
 
   // Funções para gerenciar reservas

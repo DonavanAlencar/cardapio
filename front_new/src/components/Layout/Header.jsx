@@ -1,12 +1,15 @@
 import './Header.css';
 import { useAuth } from '../../contexts/AuthContext';
-import useNotifications from '../../hooks/useNotifications';
+// import useNotifications from '../../hooks/useNotifications';
 import { useEffect, useState } from 'react';
 import { subscribeLoading } from '../../utils/loadingBus';
 
 export default function Header({ pageTitle }) {
   const { user } = useAuth();
-  const { count, loading, disabled } = useNotifications();
+  // const { count, loading, disabled } = useNotifications();
+  const count = 0;
+  const loading = false;
+  const disabled = true;
   const [anyLoading, setAnyLoading] = useState(false);
   useEffect(() => {
     return subscribeLoading((c) => setAnyLoading(c > 0));
