@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { isTokenExpired, removeStoredToken } from '../utils/authUtils';
+import { incrementLoading, decrementLoading } from '../utils/loadingBus';
 
 // Configuração da API - Desenvolvimento vs Produção
 // Em desenvolvimento, usar localhost; em produção, usar o domínio real
@@ -22,6 +23,11 @@ const api = axios.create({
 // Interceptor para incluir token de autenticação
 api.interceptors.request.use(
   (config) => {
+    // Flag para contar apenas requisições reais (evita dupla contagem em replays)
+    if (!config.__silent && !config.__loadingCounted) {
+      incrementLoading();
+      config.__loadingCounted = true;
+    }
     const token = localStorage.getItem('token');
     
     if (token) {
@@ -49,6 +55,10 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    if (error.config && !error.config.__silent && error.config.__loadingCounted) {
+      decrementLoading();
+      error.config.__loadingCounted = false;
+    }
     console.error('❌ [API] Erro na requisição:', error);
     return Promise.reject(error);
   }
@@ -57,6 +67,10 @@ api.interceptors.request.use(
 // Interceptor de resposta para tratamento de erros
 api.interceptors.response.use(
   (response) => {
+    if (response.config && !response.config.__silent && response.config.__loadingCounted) {
+      decrementLoading();
+      response.config.__loadingCounted = false;
+    }
     console.log(`✅ [API] Resposta recebida:`, {
       status: response.status,
       url: response.config.url,
@@ -65,6 +79,10 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.config && !error.config.__silent && error.config.__loadingCounted) {
+      decrementLoading();
+      error.config.__loadingCounted = false;
+    }
     console.error('❌ [API] Erro na resposta:', {
       status: error.response?.status,
       url: error.config?.url,

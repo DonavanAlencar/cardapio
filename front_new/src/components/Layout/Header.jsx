@@ -1,10 +1,16 @@
 import './Header.css';
 import { useAuth } from '../../contexts/AuthContext';
 import useNotifications from '../../hooks/useNotifications';
+import { useEffect, useState } from 'react';
+import { subscribeLoading } from '../../utils/loadingBus';
 
 export default function Header({ pageTitle }) {
   const { user } = useAuth();
-  const { count } = useNotifications();
+  const { count, loading, disabled } = useNotifications();
+  const [anyLoading, setAnyLoading] = useState(false);
+  useEffect(() => {
+    return subscribeLoading((c) => setAnyLoading(c > 0));
+  }, []);
   return (
     <header className="header">
       <div className="header-left">
@@ -17,12 +23,16 @@ export default function Header({ pageTitle }) {
       
       <div className="header-right">
         <div className="notifications">
-          <div className="notification-icon">🔔</div>
-          {count > 0 && <span className="notification-badge">{count}</span>}
+          <div className="notification-icon" title={disabled ? 'Notificações indisponíveis' : (loading ? 'Carregando notificações...' : 'Notificações')}>
+            {disabled ? '🔕' : (loading ? '⏳' : '🔔')}
+          </div>
+          {count > 0 && !loading && !disabled && <span className="notification-badge">{count}</span>}
         </div>
         
         <div className="user-profile-header">
-          <div className="user-avatar-header">{(user?.username || 'US').slice(0,2).toUpperCase()}</div>
+          <div className="user-avatar-header" title={anyLoading ? 'Processando...' : user?.username}>
+            {(user?.username || 'US').slice(0,2).toUpperCase()}
+          </div>
         </div>
       </div>
     </header>

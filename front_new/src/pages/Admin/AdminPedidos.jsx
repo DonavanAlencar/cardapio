@@ -103,7 +103,7 @@ const AdminPedidos = () => {
         if (isInitialLoad) {
           setLoading(true);
         }
-        const response = await api.get('/orders');
+        const response = await api.get('/orders', { __silent: !isInitialLoad });
         console.log('📊 Dados recebidos da API:', response.data);
         console.log('📊 Estrutura do primeiro pedido:', response.data[0]);
         setPedidos(response.data);
@@ -138,11 +138,11 @@ const AdminPedidos = () => {
   const loadModalData = async () => {
     try {
       const [customersRes, tablesRes, categoriesRes, productsRes, modifiersRes] = await Promise.all([
-        api.get('/customers'),
-        api.get('/tables'),
-        api.get('/product-categories'),
-        api.get('/products'),
-        api.get('/product-modifiers')
+        api.get('/customers', { __silent: true }),
+        api.get('/tables', { __silent: true }),
+        api.get('/product-categories', { __silent: true }),
+        api.get('/products', { __silent: true }),
+        api.get('/product-modifiers', { __silent: true })
       ]);
       
       setCustomers(customersRes.data);

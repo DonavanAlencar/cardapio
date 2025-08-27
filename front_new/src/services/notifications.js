@@ -1,12 +1,12 @@
 import api from './api';
 
 export async function fetchNotifications(params = {}) {
-  const { data } = await api.get('/notifications', { params });
+  const { data } = await api.get('/notifications', { params, __silent: true });
   return data;
 }
 
 export async function fetchNotificationsMeta() {
-  const { data } = await api.get('/notifications/meta');
+  const { data } = await api.get('/notifications/meta', { __silent: true });
   return data;
 }
 
