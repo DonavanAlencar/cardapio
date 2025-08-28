@@ -24,15 +24,33 @@ exports.listProducts = async (req, res) => {
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const [rows] = await pool.query(
-      `SELECT p.*, 
-              (SELECT price FROM product_prices pp WHERE pp.product_id = p.id ORDER BY pp.start_date DESC, pp.id DESC LIMIT 1) AS price,
-              (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 ORDER BY pi.id DESC LIMIT 1) AS image_url
-         FROM products p
-         ${where}
-         ORDER BY p.created_at DESC`
-      , params
+      `SELECT 
+          p.*, 
+          c.name AS category_name,
+          (SELECT price FROM product_prices pp WHERE pp.product_id = p.id ORDER BY pp.start_date DESC, pp.id DESC LIMIT 1) AS price,
+          (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 ORDER BY pi.id DESC LIMIT 1) AS image_url,
+          EXISTS(SELECT 1 FROM product_images pi2 WHERE pi2.product_id = p.id) AS has_image,
+          (SELECT COUNT(1) FROM order_items oi WHERE oi.product_id = p.id) AS total_orders
+        FROM products p
+        JOIN product_categories c ON c.id = p.category_id
+        ${where}
+        ORDER BY p.created_at DESC`,
+      params
     );
-    res.json(rows.map(mapProduct));
+    
+    // Contar total de produtos para paginação
+    const [countResult] = await pool.query('SELECT COUNT(*) as total FROM products');
+    const total = countResult[0].total;
+    
+    res.json({
+      products: rows.map(mapProduct),
+      pagination: {
+        total: total,
+        page: 1,
+        limit: 100,
+        totalPages: Math.ceil(total / 100)
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erro ao listar produtos', error: err.message });
   }
@@ -41,10 +59,16 @@ exports.listProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT p.*, 
-              (SELECT price FROM product_prices pp WHERE pp.product_id = p.id ORDER BY pp.start_date DESC, pp.id DESC LIMIT 1) AS price,
-              (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 ORDER BY pi.id DESC LIMIT 1) AS image_url
-         FROM products p WHERE p.id = ?`,
+      `SELECT 
+          p.*, 
+          c.name AS category_name,
+          (SELECT price FROM product_prices pp WHERE pp.product_id = p.id ORDER BY pp.start_date DESC, pp.id DESC LIMIT 1) AS price,
+          (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 ORDER BY pi.id DESC LIMIT 1) AS image_url,
+          EXISTS(SELECT 1 FROM product_images pi2 WHERE pi2.product_id = p.id) AS has_image,
+          (SELECT COUNT(1) FROM order_items oi WHERE oi.product_id = p.id) AS total_orders
+        FROM products p
+        JOIN product_categories c ON c.id = p.category_id
+        WHERE p.id = ?`,
       [req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ message: 'Produto não encontrado' });
@@ -141,8 +165,11 @@ exports.getProductStats = async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT 
+        (SELECT COUNT(1) FROM products) AS total,
         (SELECT COUNT(1) FROM products WHERE status='active') AS active,
-        (SELECT COUNT(1) FROM products WHERE status='inactive') AS inactive`);
+        (SELECT COUNT(1) FROM products WHERE status='inactive') AS inactive,
+        (SELECT COUNT(1) FROM products p JOIN product_images pi ON pi.product_id = p.id) AS withImages,
+        (SELECT COUNT(1) FROM products WHERE status='active') AS lowStock`);
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ message: 'Erro ao obter estatísticas', error: err.message });
