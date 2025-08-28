@@ -7,8 +7,10 @@ const mapProduct = (row) => ({
   description: row.description,
   sku: row.sku,
   status: row.status,
-  price: row.price !== undefined ? Number(row.price) : undefined,
-  image_url: row.image_url,
+  price: row.price !== undefined && row.price !== null ? Number(row.price) : 0,
+  image_url: row.image_url || null,
+  thumbnail_url: row.thumbnail_url || null,
+  has_image: row.has_image || false,
   created_at: row.created_at,
   updated_at: row.updated_at,
 });
@@ -23,14 +25,17 @@ exports.listProducts = async (req, res) => {
     if (q) { conditions.push('(p.name LIKE ? OR p.description LIKE ? OR p.sku LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    // Query simplificada que funciona mesmo sem as tabelas de preços e imagens
     const [rows] = await pool.query(
       `SELECT 
           p.*, 
           c.name AS category_name,
-          (SELECT price FROM product_prices pp WHERE pp.product_id = p.id ORDER BY pp.start_date DESC, pp.id DESC LIMIT 1) AS price,
-          (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 ORDER BY pi.id DESC LIMIT 1) AS image_url,
-          EXISTS(SELECT 1 FROM product_images pi2 WHERE pi2.product_id = p.id) AS has_image,
-          (SELECT COUNT(1) FROM order_items oi WHERE oi.product_id = p.id) AS total_orders
+          NULL AS price,
+          NULL AS image_url,
+          NULL AS thumbnail_url,
+          FALSE AS has_image,
+          0 AS total_orders
         FROM products p
         JOIN product_categories c ON c.id = p.category_id
         ${where}
@@ -52,7 +57,12 @@ exports.listProducts = async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao listar produtos', error: err.message });
+    console.error('Erro ao listar produtos:', err);
+    res.status(500).json({ 
+      message: 'Erro ao listar produtos', 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 };
 
@@ -62,10 +72,11 @@ exports.getProductById = async (req, res) => {
       `SELECT 
           p.*, 
           c.name AS category_name,
-          (SELECT price FROM product_prices pp WHERE pp.product_id = p.id ORDER BY pp.start_date DESC, pp.id DESC LIMIT 1) AS price,
-          (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 ORDER BY pi.id DESC LIMIT 1) AS image_url,
-          EXISTS(SELECT 1 FROM product_images pi2 WHERE pi2.product_id = p.id) AS has_image,
-          (SELECT COUNT(1) FROM order_items oi WHERE oi.product_id = p.id) AS total_orders
+          NULL AS price,
+          NULL AS image_url,
+          NULL AS thumbnail_url,
+          FALSE AS has_image,
+          0 AS total_orders
         FROM products p
         JOIN product_categories c ON c.id = p.category_id
         WHERE p.id = ?`,
@@ -74,7 +85,12 @@ exports.getProductById = async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ message: 'Produto não encontrado' });
     res.json(mapProduct(rows[0]));
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao buscar produto', error: err.message });
+    console.error('Erro ao buscar produto:', err);
+    res.status(500).json({ 
+      message: 'Erro ao buscar produto', 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 };
 

@@ -29,7 +29,10 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import api from '../../services/api';
+import { getImageUrl } from '../../config/images';
 
 const AdminProdutos = () => {
   const [products, setProducts] = useState([]);
@@ -48,6 +51,10 @@ const AdminProdutos = () => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -184,6 +191,53 @@ const AdminProdutos = () => {
     }
   };
 
+  const handleOpenImageModal = (product) => {
+    setSelectedProduct(product);
+    setSelectedImage(null);
+    setImageModalOpen(true);
+  };
+
+  const handleCloseImageModal = () => {
+    setImageModalOpen(false);
+    setSelectedProduct(null);
+    setSelectedImage(null);
+  };
+
+  const handleImageSelect = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024) {
+      setSelectedImage(file);
+    } else {
+      alert('Por favor, selecione um arquivo de imagem válido (máximo 5MB)');
+    }
+  };
+
+  const handleUploadImage = async () => {
+    if (!selectedImage || !selectedProduct) return;
+
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+      formData.append('is_primary', 'true');
+
+      await api.post(`/product-images/${selectedProduct.id}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      alert('Imagem enviada com sucesso!');
+      handleCloseImageModal();
+      fetchData(); // Recarregar produtos para mostrar nova imagem
+    } catch (err) {
+      console.error('Erro ao fazer upload da imagem:', err);
+      alert('Erro ao fazer upload da imagem');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -211,6 +265,7 @@ const AdminProdutos = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Imagem</TableCell>
               <TableCell>Nome</TableCell>
               <TableCell>Descrição</TableCell>
               <TableCell>Categoria</TableCell>
@@ -224,14 +279,60 @@ const AdminProdutos = () => {
             {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    {product.image_url && (
+                  <Box display="flex" alignItems="center" justifyContent="center">
+                    {product.image_url ? (
                       <img 
-                        src={product.image_url} 
+                        src={getImageUrl(product.image_url)}
                         alt={product.name}
-                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }}
+                        style={{ 
+                          width: 50, 
+                          height: 50, 
+                          objectFit: 'cover', 
+                          borderRadius: 8,
+                          border: '2px solid #e0e0e0'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
                       />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 50,
+                          height: 50,
+                          backgroundColor: '#f5f5f5',
+                          borderRadius: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px dashed #ccc'
+                        }}
+                      >
+                        <PhotoCameraIcon sx={{ color: '#999', fontSize: 20 }} />
+                      </Box>
                     )}
+                    
+                    {/* Fallback quando imagem falha */}
+                    <Box
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px dashed #ccc',
+                        display: 'none'
+                      }}
+                    >
+                      <PhotoCameraIcon sx={{ color: '#999', fontSize: 20 }} />
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Box display="flex" alignItems="center" gap={1}>
                     {product.name}
                   </Box>
                 </TableCell>
@@ -256,6 +357,13 @@ const AdminProdutos = () => {
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenImageModal(product)}
+                      title="Upload de imagem"
+                    >
+                      <CloudUploadIcon />
+                    </IconButton>
                     <IconButton
                       size="small"
                       onClick={() => handleOpenModal(product)}
@@ -384,6 +492,76 @@ const AdminProdutos = () => {
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Upload de Imagem */}
+      <Dialog
+        open={imageModalOpen}
+        onClose={handleCloseImageModal}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Upload de Imagem - {selectedProduct?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} mt={1}>
+            <Box
+              sx={{
+                border: '2px dashed #ccc',
+                borderRadius: 2,
+                p: 3,
+                textAlign: 'center',
+                backgroundColor: '#f9f9f9'
+              }}
+            >
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="image-upload"
+                type="file"
+                onChange={handleImageSelect}
+              />
+              <label htmlFor="image-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{ mb: 2 }}
+                >
+                  Selecionar Imagem
+                </Button>
+              </label>
+              
+              {selectedImage && (
+                <Box mt={2}>
+                  <Typography variant="body2" color="textSecondary">
+                    Arquivo selecionado: {selectedImage.name}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    Tamanho: {(selectedImage.size / 1024 / 1024).toFixed(2)} MB
+                  </Typography>
+                </Box>
+              )}
+              
+              <Typography variant="caption" color="textSecondary">
+                Formatos aceitos: JPG, PNG, GIF. Máximo: 5MB
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        
+        <DialogActions>
+          <Button onClick={handleCloseImageModal}>Cancelar</Button>
+          <Button
+            onClick={handleUploadImage}
+            variant="contained"
+            disabled={!selectedImage || uploadingImage}
+            startIcon={uploadingImage ? <CircularProgress size={20} /> : null}
+          >
+            {uploadingImage ? 'Enviando...' : 'Enviar Imagem'}
           </Button>
         </DialogActions>
       </Dialog>

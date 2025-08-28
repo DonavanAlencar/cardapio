@@ -21,6 +21,7 @@ import {
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import api from '../../services/api';
+import { getImageUrl } from '../../config/images';
 
 const Cardapio = () => {
   const [categories, setCategories] = useState([]);
@@ -42,7 +43,7 @@ const Cardapio = () => {
       ]);
       
       setCategories(categoriesRes.data);
-      setProducts(productsRes.data.filter(p => p.is_active));
+      setProducts(productsRes.data.products.filter(p => p.status === 'active'));
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     } finally {
@@ -163,9 +164,12 @@ const Cardapio = () => {
                   <CardMedia
                     component="img"
                     height="200"
-                    image={product.image_url}
+                    image={getImageUrl(product.image_url)}
                     alt={product.name}
                     sx={{ objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
                   />
                 )}
                 

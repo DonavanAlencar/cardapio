@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const garconsRoutes = require('./routes/garcons');
@@ -13,6 +14,7 @@ const branchesRoutes = require('./routes/branches');
 const productCategoriesRoutes = require('./routes/productCategories');
 const productsRoutes = require('./routes/products');
 const productModifiersRoutes = require('./routes/productModifiers');
+const productImagesRoutes = require('./routes/productImages');
 const ingredientsRoutes = require('./routes/ingredients');
 const ordersRoutes = require('./routes/orders');
 const tablesRoutes = require('./routes/tables');
@@ -117,6 +119,9 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(globalTimeout(25000)); // Timeout global de 25s
 app.use(connectionLimiter);
+
+// Servir arquivos estáticos de uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Gerenciar conexões WebSocket
 const connectedClients = new Map();
@@ -321,6 +326,7 @@ app.use('/api/branches', branchesRoutes);
 app.use('/api/product-categories', productCategoriesRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/product-modifiers', productModifiersRoutes);
+app.use('/api/product-images', productImagesRoutes);
 app.use('/api/ingredients', ingredientsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/tables', tablesRoutes);

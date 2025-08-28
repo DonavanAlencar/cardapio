@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useProducts } from '../../hooks/useProducts';
 import { useCategories } from '../../hooks/useCategories';
 import SearchInput from '../../components/SearchInput';
+import { getImageUrl } from '../../config/images';
 import './Menu.css';
 
 export default function Menu() {
@@ -280,6 +281,7 @@ export default function Menu() {
         <table className="menu-table">
           <thead>
             <tr>
+              <th>Imagem</th>
               <th>Item</th>
               <th>Categoria</th>
               <th>Preço</th>
@@ -293,13 +295,31 @@ export default function Menu() {
           <tbody>
             {products.map((product) => (
               <tr key={product.id}>
-                <td className="item-cell">
-                  <div className="item-info">
-                    {product.has_image && (
-                      <div className="item-thumbnail">
+                <td className="image-cell">
+                  <div className="product-image">
+                    {product.image_url ? (
+                      <img 
+                        src={getImageUrl(product.image_url)}
+                        alt={product.name}
+                        className="product-thumbnail"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                    ) : (
+                      <div className="no-image-placeholder">
                         🖼️
                       </div>
                     )}
+                    {/* Fallback quando imagem falha */}
+                    <div className="no-image-placeholder" style={{ display: 'none' }}>
+                      🖼️
+                    </div>
+                  </div>
+                </td>
+                <td className="item-cell">
+                  <div className="item-info">
                     <div className="item-details">
                       <h4>{product.name}</h4>
                       {product.description && <p>{product.description}</p>}
