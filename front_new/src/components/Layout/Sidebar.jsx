@@ -42,7 +42,7 @@ export default function Sidebar() {
     },
     { 
       to: '/categories', 
-      label: 'Categorias', 
+      label: 'Categorias de Produtos', 
       icon: '🏷️',
       active: pathname === '/categories'
     }

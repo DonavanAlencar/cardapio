@@ -88,7 +88,32 @@ const globalTimeout = (timeoutMs = 30000) => {
   };
 };
 
-app.use(cors());
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowList = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'https://food.546digitalservices.com'
+    ];
+    if (!origin || allowList.includes(origin)) {
+      return callback(null, true);
+    }
+    // Em desenvolvimento, liberar demais origens
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('Origem não permitida pelo CORS'));
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(globalTimeout(25000)); // Timeout global de 25s
 app.use(connectionLimiter);

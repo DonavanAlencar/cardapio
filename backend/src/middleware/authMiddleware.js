@@ -6,6 +6,11 @@ function authMiddleware(requiredRole) {
     console.log('🔐 AuthMiddleware - Iniciando verificação...');
     console.log('🔐 AuthMiddleware - URL:', req.url);
     console.log('🔐 AuthMiddleware - Method:', req.method);
+
+    // Libera imediatamente requisições de preflight CORS
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
     
     // Verificar se JWT_SECRET está definido
     if (!process.env.JWT_SECRET) {

@@ -1,5 +1,5 @@
 const express = require('express');
-const productController = require('../../controllers/productController');
+const productController = require('../controllers/productController');
 const auth = require('../middleware/authMiddleware');
 const router = express.Router();
 
@@ -33,12 +33,12 @@ router.get('/category/:category_id', productController.getProductsByCategory);
 router.get('/:id', productController.getProductById);
 
 // Rota para criar um novo produto (apenas admin/gerente)
-router.post('/', auth, authorizeAdminOrManager, productController.createProduct);
+router.post('/', auth(), authorizeAdminOrManager, productController.createProduct);
 
 // Rota para atualizar um produto (apenas admin/gerente)
-router.put('/:id', auth, authorizeAdminOrManager, productController.updateProduct);
+router.put('/:id', auth(), authorizeAdminOrManager, productController.updateProduct);
 
 // Rota para deletar um produto (apenas admin/gerente)
-router.delete('/:id', auth, authorizeAdminOrManager, productController.deleteProduct);
+router.delete('/:id', auth(), authorizeAdminOrManager, productController.deleteProduct);
 
 module.exports = router;
