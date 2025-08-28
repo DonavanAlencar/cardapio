@@ -20,11 +20,11 @@ export default function Sidebar() {
       active: pathname === '/menu'
     },
     { 
-      to: '/kitchen', 
+      to: '/cozinha', 
       label: 'Cozinha', 
       icon: '👨‍🍳',
       badge: 3,
-      active: pathname === '/kitchen'
+      active: pathname === '/cozinha'
     },
     { 
       to: '/admin/pedidos', 

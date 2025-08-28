@@ -16,7 +16,7 @@ export default function Layout() {
   const getPageTitle = () => {
     switch (pathname) {
       case '/': return 'Dashboard';
-      case '/kitchen': return 'Cozinha';
+      case '/cozinha': return 'Cozinha';
       case '/menu': return 'Cardápio';
       case '/orders': return 'Pedidos (Admin)';
       case '/stock': return 'Estoque';

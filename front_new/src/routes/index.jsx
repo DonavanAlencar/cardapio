@@ -105,9 +105,6 @@ export default function RoutesIndex() {
         
         {/* Rotas da Cozinha */}
         <Route path="cozinha" element={<PrivateRoute roles={['admin','cozinha']}><Kitchen /></PrivateRoute>} />
-        
-        {/* Rotas Gerais */}
-        <Route path="kitchen" element={<PrivateRoute><Kitchen /></PrivateRoute>} />
         <Route path="menu" element={<PrivateRoute><Menu /></PrivateRoute>} />
         <Route path="orders" element={<PrivateRoute><Orders /></PrivateRoute>} />
         <Route path="stock" element={<PrivateRoute><Stock /></PrivateRoute>} />
