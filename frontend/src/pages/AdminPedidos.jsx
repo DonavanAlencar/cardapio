@@ -29,7 +29,6 @@ const AdminPedidos = () => {
   const [pedidoForm, setPedidoForm] = useState({ 
     customer_id: '', 
     table_id: '', 
-    waiter_session_id: '',
     status: 'pending',
     items: []
   });
@@ -120,7 +119,6 @@ const AdminPedidos = () => {
     setPedidoForm({ 
       customer_id: '', 
       table_id: '', 
-      waiter_session_id: '',
       items: []
     });
     setSelectedCategory('');
@@ -137,7 +135,6 @@ const AdminPedidos = () => {
     setPedidoForm({
       customer_id: pedido.customer_id || '',
       table_id: pedido.table_id || '',
-      waiter_session_id: pedido.waiter_session_id || '',
     });
     setModalOpen(true);
   };
@@ -145,7 +142,7 @@ const AdminPedidos = () => {
   const closeModal = () => {
     setModalOpen(false);
     setEditingPedido(null);
-    setPedidoForm({ customer_id: '', table_id: '', waiter_session_id: '', items: [] });
+    setPedidoForm({ customer_id: '', table_id: '', items: [] });
     setSelectedCategory('');
     setSelectedProduct(null);
     setSelectedModifiers([]);
@@ -310,7 +307,6 @@ const AdminPedidos = () => {
         const orderData = {
           customer_id: pedidoForm.customer_id,
           table_id: pedidoForm.table_id,
-          waiter_session_id: 1, // Temporário
           items: pedidoForm.items.map(item => ({
             product_id: item.product_id,
             quantity: item.quantity,

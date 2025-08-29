@@ -35,11 +35,11 @@ Esta seção permite o controle total sobre as operações do restaurante:
 
 ### 3. Operações do Garçom
 
-Ferramentas dedicadas para a equipe de atendimento:
+Ferramentas dedicadas para a equipe de atendimento (disponível apenas no front-new):
 
-*   **Visualização e Gestão de Mesas:** Permite ao garçom ver o status das mesas e gerenciá-las (`GarcomMesas`).
-*   **Registro e Gestão de Pedidos:** Funcionalidade para registrar e acompanhar os pedidos dos clientes (`GarcomPedido`, rota `/pedidos`).
-*   **Consulta de Comissões:** Garçons podem verificar suas próprias comissões (`GarcomComissao`).
+*   **Visualização e Gestão de Mesas:** Permite ao garçom ver o status das mesas e gerenciá-las.
+*   **Registro e Gestão de Pedidos:** Funcionalidade para registrar e acompanhar os pedidos dos clientes.
+*   **Consulta de Comissões:** Garçons podem verificar suas próprias comissões.
 
 ### 4. Menu para Clientes
 

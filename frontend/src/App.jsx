@@ -10,9 +10,7 @@ import AdminProductModifiers from './pages/AdminProductModifiers';
 import AdminReports from './pages/AdminReports';
 import AdminStockMovements from './pages/AdminStockMovements';
 import AdminIngredients from './pages/AdminIngredients';
-import GarcomMesas from './pages/GarcomMesas';
-import GarcomPedido from './pages/GarcomPedido';
-import GarcomComissao from './pages/GarcomComissao';
+
 import Cardapio from './pages/Cardapio';
 import Cozinha from './pages/Cozinha';
 import AdminPedidos from './pages/AdminPedidos';
@@ -69,9 +67,7 @@ function App() {
           <Route path="/admin/stock-movements" element={<PrivateRoute role="admin"><AdminStockMovements /></PrivateRoute>} />
           <Route path="/admin/ingredients" element={<PrivateRoute role="admin"><AdminIngredients /></PrivateRoute>} />
           <Route path="/admin/pedidos" element={<PrivateRoute role="admin"><AdminPedidos /></PrivateRoute>} />
-          <Route path="/garcom/mesas" element={<PrivateRoute role="waiter"><GarcomMesas /></PrivateRoute>} />
-          <Route path="/garcom/pedido/:pedidoId?" element={<PrivateRoute role="waiter"><GarcomPedido /></PrivateRoute>} />
-          <Route path="/garcom/comissao" element={<PrivateRoute role="waiter"><GarcomComissao /></PrivateRoute>} />
+
           <Route path="/cardapio" element={<Cardapio />} />
           <Route path="/cozinha" element={<PrivateRoute roles={['admin','cozinha']}><Cozinha /></PrivateRoute>} />
           <Route path="/new-features" element={<NewFeaturesPage />} /> {/* New route for showcasing components */}

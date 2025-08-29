@@ -55,12 +55,7 @@ export default function Sidebar() {
       icon: '👥',
       active: pathname === '/admin/gestao-garcons'
     },
-    { 
-      to: '/admin/garcons', 
-      label: 'Garçons (Legado)', 
-      icon: '👤',
-      active: pathname === '/admin/garcons'
-    }
+
   ];
 
   return (

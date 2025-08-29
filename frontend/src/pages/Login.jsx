@@ -146,8 +146,6 @@ export default function Login() {
         // Redireciona com base na role do usuário
         if (res.data.user.role === 'admin') {
           navigate('/admin/pedidos');
-        } else if (res.data.user.role === 'waiter') {
-          navigate('/garcom/mesas');
         } else {
           navigate('/new-features');
         }
@@ -218,8 +216,6 @@ export default function Login() {
         api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
         if (res.data.user.role === 'admin') {
           navigate('/admin/pedidos');
-        } else if (res.data.user.role === 'waiter') {
-          navigate('/garcom/mesas');
         } else {
           navigate('/new-features');
         }

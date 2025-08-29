@@ -26,10 +26,7 @@ import jwt_decode from "jwt-decode";
 import "./Sidebar.css";
 
 const fullMenu = [
-  { label: "Cardápio", icon: <RestaurantMenu />, path: "/cardapio", roles: ["admin", "waiter"] },
-  { label: "Mesas", icon: <Store />, path: "/garcom/mesas", roles: ["waiter"] },
-  { label: "Pedidos", icon: <ShoppingCart />, path: "/garcom/pedido", roles: ["waiter"] },
-  { label: "Comissão", icon: <Assessment />, path: "/garcom/comissao", roles: ["waiter"] },
+  { label: "Cardápio", icon: <RestaurantMenu />, path: "/cardapio", roles: ["admin"] },
   { label: "Cozinha", icon: <Kitchen />, path: "/cozinha", roles: ["admin", "cozinha"] },
   {
     label: "Administração",
@@ -45,7 +42,6 @@ const fullMenu = [
       { label: "Relatórios", icon: <Assessment />, path: "/admin/reports", roles: ["admin"] },
       { label: "Movimentação de Estoque", icon: <EventNote />, path: "/admin/stock-movements", roles: ["admin"] },
       { label: "Configuração de Comissão", icon: <Assessment />, path: "/admin/comissao", roles: ["admin"] },
-      { label: "Garçons", icon: <Group />, path: "/admin/garcons", roles: ["admin"] },
     ]
   },
 ];
