@@ -27,14 +27,6 @@ export default function Sidebar() {
       active: pathname === '/cozinha'
     },
     { 
-      to: '/admin/pedidos', 
-      label: 'Pedidos (Admin)', 
-      icon: '📋',
-      badge: 2,
-      active: pathname === '/admin/pedidos',
-      expandable: true
-    },
-    { 
       to: '/stock', 
       label: 'Estoque', 
       icon: '📦',
@@ -45,6 +37,29 @@ export default function Sidebar() {
       label: 'Categorias de Produtos', 
       icon: '🏷️',
       active: pathname === '/categories'
+    }
+  ];
+
+  // Menu administrativo (apenas para usuários admin)
+  const adminMenuItems = [
+    { 
+      to: '/admin/pedidos', 
+      label: 'Pedidos', 
+      icon: '📋',
+      badge: 2,
+      active: pathname === '/admin/pedidos'
+    },
+    { 
+      to: '/admin/gestao-garcons', 
+      label: 'Gestão de Garçons', 
+      icon: '👥',
+      active: pathname === '/admin/gestao-garcons'
+    },
+    { 
+      to: '/admin/garcons', 
+      label: 'Garçons (Legado)', 
+      icon: '👤',
+      active: pathname === '/admin/garcons'
     }
   ];
 
@@ -81,7 +96,6 @@ export default function Sidebar() {
             <div className="nav-item-content">
               <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
-              {item.expandable && <span className="expand-icon">⌄</span>}
             </div>
             {item.badge && (
               <span className="badge">{item.badge}</span>
@@ -89,6 +103,32 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
+
+      {/* Menu Administrativo */}
+      {user?.role === 'admin' && (
+        <>
+          <div className="admin-section-header">
+            <span>Administração</span>
+          </div>
+          <nav className="nav-menu admin-menu">
+            {adminMenuItems.map((item) => (
+              <Link 
+                key={item.to} 
+                to={item.to} 
+                className={`nav-item ${item.active ? 'active' : ''}`}
+              >
+                <div className="nav-item-content">
+                  <span className="nav-icon">{item.icon}</span>
+                  <span className="nav-label">{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span className="badge">{item.badge}</span>
+                )}
+              </Link>
+            ))}
+          </nav>
+        </>
+      )}
     </aside>
   );
 }

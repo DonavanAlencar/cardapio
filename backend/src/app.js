@@ -5,7 +5,7 @@ const socketIo = require('socket.io');
 const path = require('path');
 require('dotenv').config();
 const authRoutes = require('./routes/auth');
-const garconsRoutes = require('./routes/garcons');
+const garconsRoutes = require('./routes/garcons-simple');
 const produtosRoutes = require('./routes/produtos');
 const pedidosRoutes = require('./routes/pedidos');
 const configRoutes = require('./routes/configuracoes');

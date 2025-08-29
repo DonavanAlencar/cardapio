@@ -1,0 +1,464 @@
+/* Estilos para a página de Gestão de Garçons */
+
+/* Cards de KPIs */
+.kpi-card {
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-active {
+  border-left-color: #4caf50;
+}
+
+.kpi-orders {
+  border-left-color: #ff9800;
+}
+
+.kpi-revenue {
+  border-left-color: #2196f3;
+}
+
+/* Tabela */
+.MuiTableContainer-root {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.MuiTableHead-root .MuiTableCell-root {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background-color: #f8f9fa;
+}
+
+/* Chips de filtros */
+.MuiChip-root {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.MuiChip-root:hover {
+  transform: scale(1.05);
+}
+
+/* Botões de ação */
+.MuiIconButton-root {
+  transition: all 0.2s ease;
+}
+
+.MuiIconButton-root:hover {
+  transform: scale(1.1);
+}
+
+/* Modal */
+.MuiDialog-paper {
+  border-radius: 12px;
+}
+
+.MuiDialogTitle-root {
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Drawer de filtros avançados */
+.MuiDrawer-paper {
+  border-radius: 8px 0 0 8px;
+}
+
+/* Campos de formulário */
+.MuiTextField-root .MuiOutlinedInput-root {
+  border-radius: 8px;
+}
+
+.MuiTextField-root .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #1976d2;
+}
+
+.MuiTextField-root .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #1976d2;
+  border-width: 2px;
+}
+
+/* Selects */
+.MuiFormControl-root .MuiOutlinedInput-root {
+  border-radius: 8px;
+}
+
+/* Paginação */
+.MuiPagination-root .MuiPaginationItem-root {
+  border-radius: 8px;
+}
+
+.MuiPagination-root .MuiPaginationItem-root.Mui-selected {
+  background-color: #1976d2;
+  color: white;
+}
+
+/* Alertas */
+.MuiAlert-root {
+  border-radius: 8px;
+}
+
+/* Snackbar */
+.MuiSnackbar-root .MuiAlert-root {
+  border-radius: 8px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .kpi-card {
+    margin-bottom: 16px;
+  }
+  
+  .MuiTableContainer-root {
+    overflow-x: auto;
+  }
+  
+  .MuiTableCell-root {
+    padding: 8px 4px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kpi-card {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Estados de loading */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Estilos para o menu de exportação */
+.export-menu .MuiMenuItem-root {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-menu .MuiMenuItem-root:hover {
+  background-color: #f5f5f5;
+}
+
+/* Estilos para os filtros rápidos */
+.quick-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.quick-filters .MuiChip-root {
+  margin-bottom: 4px;
+}
+
+/* Estilos para a barra de busca */
+.search-bar {
+  position: relative;
+}
+
+.search-bar .MuiInputBase-root {
+  border-radius: 24px;
+  background-color: #f5f5f5;
+}
+
+.search-bar .MuiInputBase-root:hover {
+  background-color: #eeeeee;
+}
+
+.search-bar .MuiInputBase-root.Mui-focused {
+  background-color: white;
+  box-shadow: 0 0 0 2px #1976d2;
+}
+
+/* Estilos para os dropdowns de filtros */
+.filter-dropdowns {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-dropdowns .MuiFormControl-root {
+  min-width: 150px;
+}
+
+/* Estilos para o botão de filtros avançados */
+.advanced-filters-btn {
+  border-radius: 20px;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Estilos para o drawer de filtros avançados */
+.advanced-filters-drawer {
+  padding: 24px;
+}
+
+.advanced-filters-drawer .MuiTypography-h6 {
+  margin-bottom: 24px;
+  color: #1976d2;
+}
+
+.advanced-filters-drawer .MuiButton-root {
+  margin-top: 16px;
+  border-radius: 8px;
+}
+
+/* Estilos para a tabela responsiva */
+.table-responsive {
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para os avatares dos garçons */
+.waiter-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  background: linear-gradient(135deg, #1976d2, #42a5f5);
+}
+
+/* Estilos para os chips de status */
+.status-chip {
+  border-radius: 16px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-chip.ativo {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #4caf50;
+}
+
+.status-chip.inativo {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #f44336;
+}
+
+.status-chip.licenca {
+  background-color: #fff3e0;
+  color: #ef6c00;
+  border: 1px solid #ff9800;
+}
+
+.status-chip.ferias {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #2196f3;
+}
+
+/* Estilos para os chips de setor */
+.sector-chip {
+  border-radius: 12px;
+  font-weight: 500;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #2196f3;
+}
+
+/* Estilos para as métricas na tabela */
+.metric-value {
+  font-weight: 600;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.metric-value.orders {
+  color: #ff9800;
+}
+
+.metric-value.sales {
+  color: #f44336;
+}
+
+.metric-value.rating {
+  color: #ff9800;
+}
+
+/* Estilos para os botões de ação */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.action-buttons .MuiIconButton-root {
+  padding: 4px;
+}
+
+.action-buttons .MuiIconButton-root:hover {
+  background-color: #f5f5f5;
+}
+
+/* Estilos para o modal de garçom */
+.waiter-modal .MuiDialogTitle-root {
+  background: linear-gradient(135deg, #1976d2, #42a5f5);
+  color: white;
+}
+
+.waiter-modal .MuiDialogContent-root {
+  padding: 24px;
+}
+
+.waiter-modal .MuiDialogActions-root {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Estilos para os campos obrigatórios */
+.required-field .MuiInputLabel-root::after {
+  content: ' *';
+  color: #f44336;
+}
+
+/* Estilos para mensagens de erro */
+.error-message {
+  color: #f44336;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+/* Estilos para mensagens de sucesso */
+.success-message {
+  color: #4caf50;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+/* Estilos para o menu de ações do garçom */
+.waiter-actions-menu .MuiMenuItem-root {
+  padding: 12px 16px;
+}
+
+.waiter-actions-menu .MuiMenuItem-root:hover {
+  background-color: #f5f5f5;
+}
+
+.waiter-actions-menu .MuiDivider-root {
+  margin: 8px 0;
+}
+
+/* Estilos para a paginação */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding: 16px 0;
+}
+
+/* Estilos para estados vazios */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #666;
+}
+
+.empty-state .MuiTypography-root {
+  margin-bottom: 16px;
+}
+
+/* Estilos para estados de erro */
+.error-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #f44336;
+}
+
+.error-state .MuiTypography-root {
+  margin-bottom: 16px;
+}
+
+/* Estilos para o botão de adicionar garçom */
+.add-waiter-btn {
+  background: linear-gradient(135deg, #d32f2f, #f44336);
+  color: white;
+  border-radius: 24px;
+  text-transform: none;
+  font-weight: 600;
+  padding: 12px 24px;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+  transition: all 0.3s ease;
+}
+
+.add-waiter-btn:hover {
+  background: linear-gradient(135deg, #b71c1c, #d32f2f);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+}
+
+/* Estilos para o botão de exportar */
+.export-btn {
+  border-radius: 20px;
+  text-transform: none;
+  font-weight: 500;
+  padding: 10px 20px;
+}
+
+/* Estilos para o botão de filtros avançados */
+.advanced-filters-btn {
+  border-radius: 20px;
+  text-transform: none;
+  font-weight: 500;
+  padding: 10px 20px;
+}
+
+/* Estilos para os filtros rápidos */
+.quick-filters .MuiChip-root {
+  border-radius: 20px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.quick-filters .MuiChip-root.MuiChip-colorPrimary {
+  background: linear-gradient(135deg, #1976d2, #42a5f5);
+}
+
+.quick-filters .MuiChip-root.MuiChip-colorSuccess {
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+}
+
+.quick-filters .MuiChip-root.MuiChip-colorWarning {
+  background: linear-gradient(135deg, #ff9800, #ffb74d);
+}
+
+.quick-filters .MuiChip-root.MuiChip-colorInfo {
+  background: linear-gradient(135deg, #2196f3, #64b5f6);
+}

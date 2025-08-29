@@ -14,6 +14,7 @@ import Ingredients from '../pages/Ingredients/Ingredients';
 
 // Importar novas páginas administrativas
 import AdminGarcons from '../pages/Admin/AdminGarcons';
+import GestaoGarcons from '../pages/Admin/GestaoGarcons';
 import AdminMesas from '../pages/Admin/AdminMesas';
 import AdminProdutos from '../pages/Admin/AdminProdutos';
 import AdminComissao from '../pages/Admin/AdminComissao';
@@ -88,6 +89,7 @@ export default function RoutesIndex() {
         
         {/* Rotas Administrativas */}
         <Route path="admin/garcons" element={<PrivateRoute role="admin"><AdminGarcons /></PrivateRoute>} />
+        <Route path="admin/gestao-garcons" element={<PrivateRoute role="admin"><GestaoGarcons /></PrivateRoute>} />
         <Route path="admin/mesas" element={<PrivateRoute role="admin"><AdminMesas /></PrivateRoute>} />
         <Route path="admin/produtos" element={<PrivateRoute role="admin"><AdminProdutos /></PrivateRoute>} />
         <Route path="admin/comissao" element={<PrivateRoute role="admin"><AdminComissao /></PrivateRoute>} />
