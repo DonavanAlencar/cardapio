@@ -53,17 +53,32 @@ export default function Dashboard() {
     try {
       const realTimeData = await dashboardService.getRealTimeData();
       
-      // Atualizar dados básicos
-      setDashboardData(prev => ({
-        ...prev,
-        tables: realTimeData.tables,
-        recentOrders: realTimeData.activeOrders
-      }));
+      // Atualizar dados básicos de uma vez só para evitar duplicação
+      setDashboardData(prev => {
+        // Filtrar mesas duplicadas antes de atualizar
+        const uniqueTables = realTimeData.tables?.filter((table, index, self) => 
+          index === self.findIndex(t => t.id === table.id)
+        ) || [];
+        
+        const newData = {
+          ...prev,
+          tables: uniqueTables,
+          recentOrders: realTimeData.activeOrders
+        };
+        
+        console.log('🔍 [Dashboard] Atualizando dados em tempo real:', {
+          originalTablesCount: realTimeData.tables?.length || 0,
+          uniqueTablesCount: uniqueTables.length,
+          tableIds: uniqueTables.map(t => t.id)
+        });
+        
+        return newData;
+      });
       
       // Atualizar reservas se necessário
-      if (prev?.user?.branch_id) {
+      if (dashboardData?.user?.branch_id) {
         try {
-          const reservationsData = await dashboardService.getReservationsData(prev.user.branch_id);
+          const reservationsData = await dashboardService.getReservationsData(dashboardData.user.branch_id);
           setDashboardData(prevData => ({
             ...prevData,
             reservations: reservationsData.data || []
@@ -102,7 +117,22 @@ export default function Dashboard() {
     const handleTablesUpdate = (data) => {
       console.log('📡 [WebSocket] Atualização de mesas recebida:', data);
       if (data.tables) {
-        setTables(data.tables);
+        // Filtrar mesas duplicadas antes de atualizar
+        const uniqueTables = data.tables.filter((table, index, self) => 
+          index === self.findIndex(t => t.id === table.id)
+        );
+        
+        console.log('🔍 [Dashboard] WebSocket - Filtrando mesas duplicadas:', {
+          originalCount: data.tables.length,
+          uniqueCount: uniqueTables.length,
+          tableIds: uniqueTables.map(t => t.id)
+        });
+        
+        // Atualizar mesas via dashboardData para evitar duplicação
+        setDashboardData(prev => ({
+          ...prev,
+          tables: uniqueTables
+        }));
         setLastUpdate(new Date());
       }
     };
@@ -179,13 +209,13 @@ export default function Dashboard() {
         status: 'occupied',
         color: dashboardService.mapTableStatusColor('occupied'),
         text: 'Ocupada',
-        tooltip: `Mesa ${table.number} - Ocupada - Pedido: ${dashboardService.formatCurrency(table.orderTotal)}`
+        tooltip: `Mesa ${table.number || table.table_number} - Ocupada - Pedido: ${dashboardService.formatCurrency(table.orderTotal)}`
       };
     }
     
     // Se a mesa tem reserva ativa, é reservada
     if (table.hasReservation && table.reservationStatus === 'booked') {
-      let tooltip = `Mesa ${table.number} - Reservada - Cliente: ${table.customerName}`;
+      let tooltip = `Mesa ${table.number || table.table_number} - Reservada - Cliente: ${table.customerName}`;
       if (table.reservationTime) {
         const reservationTime = new Date(table.reservationTime);
         tooltip += ` - ${reservationTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
@@ -204,7 +234,7 @@ export default function Dashboard() {
       status: table.status,
       color: dashboardService.mapTableStatusColor(table.status),
       text: dashboardService.mapTableStatus(table.status),
-      tooltip: `Mesa ${table.number} - ${dashboardService.mapTableStatus(table.status)}`
+              tooltip: `Mesa ${table.number || table.table_number} - ${dashboardService.mapTableStatus(table.status)}`
     };
   };
 
@@ -401,24 +431,31 @@ export default function Dashboard() {
           </div>
 
           <div className="table-grid">
-            {tables.map((table) => {
-              const tableStatus = getTableRealStatus(table);
-              
-              return (
-                <div 
-                  key={table.id} 
-                  className="table-button"
-                  style={{ backgroundColor: tableStatus.color }}
-                  title={tableStatus.tooltip}
-                >
-                  Mesa {table.number}
-                  {table.hasOrder && <div className="table-order-indicator">📋</div>}
-                  {table.hasReservation && table.reservationStatus === 'booked' && (
-                    <div className="table-reservation-indicator">📅</div>
-                  )}
-                </div>
-              );
-            })}
+            {console.log('🔍 [Dashboard] Renderizando mesas:', tables)}
+            {console.log('🔍 [Dashboard] IDs das mesas:', tables.map(t => t.id))}
+            {/* Filtrar mesas duplicadas por ID */}
+            {tables
+              .filter((table, index, self) => 
+                index === self.findIndex(t => t.id === table.id)
+              )
+              .map((table) => {
+                const tableStatus = getTableRealStatus(table);
+                
+                return (
+                  <div 
+                    key={`table-${table.id}`} 
+                    className="table-button"
+                    style={{ backgroundColor: tableStatus.color }}
+                    title={tableStatus.tooltip}
+                  >
+                    Mesa {table.number || table.table_number}
+                    {table.hasOrder && <div className="table-order-indicator">📋</div>}
+                    {table.hasReservation && table.reservationStatus === 'booked' && (
+                      <div className="table-reservation-indicator">📅</div>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </div>
 

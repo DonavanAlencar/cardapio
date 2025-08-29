@@ -59,6 +59,34 @@ router.get('/test', async (req, res) => {
   }
 });
 
+// Rota de teste para verificar dados do banco
+router.get('/debug', async (req, res) => {
+  console.log('🔍 [TABLES] Rota de debug chamada');
+  
+  try {
+    // Query para verificar todas as mesas no banco
+    const [allTables] = await pool.query('SELECT id, branch_id, table_number, capacity, status FROM tables ORDER BY id');
+    
+    console.log('🔍 [TABLES] Todas as mesas no banco:', allTables);
+    console.log('🔍 [TABLES] Total de mesas no banco:', allTables.length);
+    console.log('🔍 [TABLES] IDs das mesas:', allTables.map(t => t.id));
+    
+    res.json({
+      success: true,
+      total_tables: allTables.length,
+      tables: allTables,
+      message: 'Debug das mesas no banco'
+    });
+    
+  } catch (err) {
+    console.error('❌ [TABLES] Erro no debug:', err);
+    res.status(500).json({ 
+      success: false,
+      error: err.message 
+    });
+  }
+});
+
 // Rota para listar todas as mesas
 router.get('/', auth, async (req, res) => {
   console.log('🔍 [TABLES] GET /api/tables chamado', { 
@@ -99,6 +127,9 @@ router.get('/', auth, async (req, res) => {
       execution_time: executionTime
     });
     
+    console.log('🔍 [TABLES] Dados retornados:', rows);
+    console.log('🔍 [TABLES] IDs das mesas:', rows.map(r => r.id));
+    
     // Armazenar no cache
     tablesCache.set(cacheKey, {
       data: rows,
@@ -115,39 +146,15 @@ router.get('/', auth, async (req, res) => {
       timestamp: new Date().toISOString()
     });
     
-    // SOLUÇÃO TEMPORÁRIA: Retornar dados mockados se a query falhar
-    console.log('🔄 [TABLES] Retornando dados mockados como fallback');
-    const mockTables = [
-      { id: 1, branch_id: req.user.branch_id, table_number: 'Mesa 1', capacity: 4, status: 'available' },
-      { id: 2, branch_id: req.user.branch_id, table_number: 'Mesa 2', capacity: 2, status: 'available' },
-      { id: 3, branch_id: req.user.branch_id, table_number: 'Mesa 3', capacity: 4, status: 'available' },
-      { id: 4, branch_id: req.user.branch_id, table_number: 'Mesa 4', capacity: 6, status: 'available' }
-    ];
-    
-    // Armazenar no cache para evitar novas tentativas
-    const cacheKey = `tables_${req.user.branch_id}`;
-    tablesCache.set(cacheKey, {
-      data: mockTables,
-      timestamp: Date.now()
+    // Retornar erro em vez de dados mockados
+    res.status(500).json({ 
+      message: 'Erro interno do servidor ao buscar mesas.',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Erro interno'
     });
-    
-    res.json(mockTables);
   }
 });
 
-// Rota alternativa que sempre retorna dados mockados (para resolver o problema de timeout)
-router.get('/mock', auth, (req, res) => {
-  console.log('🔄 [TABLES] Rota mock chamada');
-  
-  const mockTables = [
-    { id: 1, branch_id: req.user.branch_id, table_number: 'Mesa 1', capacity: 4, status: 'available' },
-    { id: 2, branch_id: req.user.branch_id, table_number: 'Mesa 2', capacity: 2, status: 'available' },
-    { id: 3, branch_id: req.user.branch_id, table_number: 'Mesa 3', capacity: 4, status: 'available' },
-    { id: 4, branch_id: req.user.branch_id, table_number: 'Mesa 4', capacity: 6, status: 'available' }
-  ];
-  
-  res.json(mockTables);
-});
+
 
 // Rota para criar uma nova mesa (apenas admin/gerente)
 router.post('/', auth, authorizeAdminOrManager, async (req, res) => {

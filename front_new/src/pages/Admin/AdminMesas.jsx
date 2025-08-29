@@ -53,10 +53,14 @@ const AdminMesas = () => {
   const fetchTables = async () => {
     try {
       setLoading(true);
+      console.log('🔍 [AdminMesas] Iniciando busca de mesas...');
       const response = await api.get('/tables');
+      console.log('🔍 [AdminMesas] Resposta da API:', response.data);
+      console.log('🔍 [AdminMesas] Quantidade de mesas recebidas:', response.data.length);
+      console.log('🔍 [AdminMesas] IDs das mesas:', response.data.map(m => m.id));
       setTables(response.data);
     } catch (err) {
-      console.error('Erro ao carregar mesas:', err);
+      console.error('❌ [AdminMesas] Erro ao carregar mesas:', err);
       alert('Erro ao carregar mesas');
     } finally {
       setLoading(false);
