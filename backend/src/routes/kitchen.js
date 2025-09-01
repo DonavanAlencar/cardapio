@@ -170,6 +170,38 @@ router.get('/orders/status/:status', auth(), authorizeKitchenAccess, async (req,
   }
 });
 
+// Buscar pedidos urgentes
+router.get('/orders/urgent', auth(), authorizeKitchenAccess, async (req, res) => {
+  try {
+    const branchId = req.user.branch_id;
+
+    // Pedidos pendentes há mais de 30 minutos
+    const [urgentOrders] = await pool.query(
+      `SELECT 
+        o.id,
+        o.status,
+        o.total_amount,
+        o.created_at,
+        c.full_name as customer_name,
+        t.table_number as table_name,
+        TIMESTAMPDIFF(MINUTE, o.created_at, NOW()) as minutes_waiting
+       FROM orders o
+       LEFT JOIN customers c ON c.id = o.customer_id
+       LEFT JOIN tables t ON t.id = o.table_id
+       WHERE o.status IN ('pending', 'in_preparation')
+         AND t.branch_id = ?
+         AND o.created_at <= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+       ORDER BY o.created_at ASC`,
+      [branchId]
+    );
+
+    res.json(urgentOrders);
+  } catch (err) {
+    console.error('Erro ao buscar pedidos urgentes:', err);
+    res.status(500).json({ message: 'Erro interno do servidor.' });
+  }
+});
+
 // Buscar detalhes de um pedido específico
 router.get('/orders/:id', auth(), authorizeKitchenAccess, async (req, res) => {
   try {
@@ -555,38 +587,6 @@ router.get('/orders/history', auth(), authorizeKitchenAccess, async (req, res) =
   }
 });
 
-// Buscar pedidos urgentes
-router.get('/orders/urgent', auth(), authorizeKitchenAccess, async (req, res) => {
-  try {
-    const branchId = req.user.branch_id;
-
-    // Pedidos pendentes há mais de 30 minutos
-    const [urgentOrders] = await pool.query(
-      `SELECT 
-        o.id,
-        o.status,
-        o.total_amount,
-        o.created_at,
-        c.full_name as customer_name,
-        t.table_number as table_name,
-        TIMESTAMPDIFF(MINUTE, o.created_at, NOW()) as minutes_waiting
-       FROM orders o
-       LEFT JOIN customers c ON c.id = o.customer_id
-       LEFT JOIN tables t ON t.id = o.table_id
-       WHERE o.status IN ('pending', 'in_preparation')
-         AND t.branch_id = ?
-         AND o.created_at <= DATE_SUB(NOW(), INTERVAL 30 MINUTE)
-       ORDER BY o.created_at ASC`,
-      [branchId]
-    );
-
-    res.json(urgentOrders);
-  } catch (err) {
-    console.error('Erro ao buscar pedidos urgentes:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
-  }
-});
-
 // Buscar pedidos por mesa
 router.get('/orders/table/:tableId', auth(), authorizeKitchenAccess, async (req, res) => {
   try {
@@ -871,9 +871,9 @@ router.put('/tickets/:ticketId/items/:itemId/status', auth(), authorizeKitchenAc
 router.get('/pending-count', auth(), async (req, res) => {
   try {
     const [result] = await pool.query(`
-      SELECT COUNT(*) as count
-      FROM kitchen_ticket_items kti
-      JOIN kitchen_tickets kt ON kti.kitchen_ticket_id = kt.id
+      SELECT COUNT(DISTINCT kt.order_id) as count
+      FROM kitchen_tickets kt
+      JOIN kitchen_ticket_items kti ON kti.kitchen_ticket_id = kt.id
       WHERE kti.preparation_status IN ('pending', 'preparing')
       AND kt.status IN ('pending', 'in_progress')
     `);

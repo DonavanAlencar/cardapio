@@ -1,4 +1,4 @@
-import api from '../config/api';
+import api from './api';
 
 class StockService {
   // Listar itens do estoque com filtros
