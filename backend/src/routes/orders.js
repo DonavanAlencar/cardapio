@@ -22,6 +22,22 @@ router.get('/', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   }
 });
 
+// Contar pedidos pendentes para badge
+router.get('/pending-count', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      SELECT COUNT(*) as count
+      FROM orders
+      WHERE status IN ('open', 'in_preparation')
+    `);
+    
+    res.json({ count: result[0].count });
+  } catch (err) {
+    console.error('Erro ao contar pedidos pendentes:', err);
+    res.status(500).json({ message: 'Erro interno ao contar pedidos pendentes' });
+  }
+});
+
 // Rota para buscar um pedido específico com seus itens
 router.get('/:id', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
   const { id } = req.params;

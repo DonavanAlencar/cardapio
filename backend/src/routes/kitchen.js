@@ -867,4 +867,22 @@ router.put('/tickets/:ticketId/items/:itemId/status', auth(), authorizeKitchenAc
   }
 });
 
+// Contar pedidos pendentes para badge da cozinha
+router.get('/pending-count', auth(), async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      SELECT COUNT(*) as count
+      FROM kitchen_ticket_items kti
+      JOIN kitchen_tickets kt ON kti.kitchen_ticket_id = kt.id
+      WHERE kti.preparation_status IN ('pending', 'preparing')
+      AND kt.status IN ('pending', 'in_progress')
+    `);
+    
+    res.json({ count: result[0].count });
+  } catch (err) {
+    console.error('Erro ao contar pedidos pendentes da cozinha:', err);
+    res.status(500).json({ message: 'Erro interno ao contar pedidos pendentes' });
+  }
+});
+
 module.exports = router; 

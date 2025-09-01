@@ -9,6 +9,13 @@ const baseURL = isDevelopment
   ? 'http://localhost:4000/api' 
   : 'https://food.546digitalservices.com/api';
 
+console.log('🔧 [API] Configuração detectada:', {
+  hostname: window.location.hostname,
+  isDevelopment,
+  baseURL,
+  port: window.location.port
+});
+
 console.log('🌐 [API] Configuração:', { 
   hostname: window.location.hostname, 
   isDevelopment, 

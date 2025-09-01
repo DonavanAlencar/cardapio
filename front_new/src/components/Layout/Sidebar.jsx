@@ -1,10 +1,19 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotificationCounts } from '../../hooks/useNotificationCounts';
 import './Sidebar.css';
 
 export default function Sidebar() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { counts, loading, error } = useNotificationCounts();
+  
+  // Debug logs
+  console.log('🔍 [Sidebar] User:', user);
+  console.log('🔍 [Sidebar] IsAuthenticated:', isAuthenticated);
+  console.log('🔍 [Sidebar] Counts:', counts);
+  console.log('🔍 [Sidebar] Loading:', loading);
+  console.log('🔍 [Sidebar] Error:', error);
   
   const menuItems = [
     { 
@@ -23,7 +32,7 @@ export default function Sidebar() {
       to: '/cozinha', 
       label: 'Cozinha', 
       icon: '👨‍🍳',
-      badge: 3,
+      badge: counts.kitchen,
       active: pathname === '/cozinha'
     },
     { 
@@ -46,7 +55,7 @@ export default function Sidebar() {
       to: '/admin/pedidos', 
       label: 'Pedidos', 
       icon: '📋',
-      badge: 2,
+      badge: counts.orders,
       active: pathname === '/admin/pedidos'
     },
     { 
@@ -92,7 +101,7 @@ export default function Sidebar() {
               <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
             </div>
-            {item.badge && (
+            {item.badge > 0 && (
               <span className="badge">{item.badge}</span>
             )}
           </Link>
@@ -116,7 +125,7 @@ export default function Sidebar() {
                   <span className="nav-icon">{item.icon}</span>
                   <span className="nav-label">{item.label}</span>
                 </div>
-                {item.badge && (
+                {item.badge > 0 && (
                   <span className="badge">{item.badge}</span>
                 )}
               </Link>
