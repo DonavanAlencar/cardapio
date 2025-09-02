@@ -227,6 +227,33 @@
   background: #e9ecef;
 }
 
+.action-btn.view {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.action-btn.view:hover {
+  background: #bbdefb;
+}
+
+.action-btn.edit {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.action-btn.edit:hover {
+  background: #ffe0b2;
+}
+
+.action-btn.delete {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.action-btn.delete:hover {
+  background: #ffcdd2;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

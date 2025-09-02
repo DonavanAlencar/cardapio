@@ -3,6 +3,7 @@ import {
   Box,
   Typography,
   Paper,
+  Grid,
   Table,
   TableBody,
   TableCell,
@@ -33,6 +34,7 @@ import api from '../../services/api';
 import webSocketService from '../../services/websocket';
 import { useStockValidation } from '../../hooks/useStockValidation';
 import StockBadge from '../../components/UI/StockBadge';
+import OrderDetailView from '../../components/Orders/OrderDetailView';
 import '../Orders/Orders.css';
 
 // Função utilitária para formatar valores monetários de forma segura
@@ -65,11 +67,14 @@ const AdminPedidos = () => {
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPedido, setEditingPedido] = useState(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewingPedido, setViewingPedido] = useState(null);
   const [pedidoForm, setPedidoForm] = useState({ 
     customer_id: '', 
     table_id: '', 
     waiter_session_id: '',
     status: 'pending',
+    notes: '',
     items: []
   });
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -390,13 +395,25 @@ const AdminPedidos = () => {
     
     if (pedido) {
       setEditingPedido(pedido);
-      setPedidoForm({
-        customer_id: pedido.customer_id || '',
-        table_id: pedido.table_id || '',
-        waiter_session_id: pedido.waiter_session_id || '',
-        status: pedido.status || 'pending',
-        items: pedido.items || []
-      });
+      
+      try {
+        // Carregar dados detalhados do pedido para edição
+        const response = await api.get(`/orders/${pedido.id}/detailed`);
+        const pedidoDetalhado = response.data;
+        
+        setPedidoForm({
+          customer_id: pedidoDetalhado.customer_id || '',
+          table_id: pedidoDetalhado.table_id || '',
+          waiter_session_id: pedidoDetalhado.waiter_session_id || '',
+          status: pedidoDetalhado.status || 'pending',
+          notes: pedidoDetalhado.notes || '',
+          items: pedidoDetalhado.items || []
+        });
+      } catch (error) {
+        console.error('Erro ao carregar dados do pedido:', error);
+        alert('Erro ao carregar dados do pedido para edição');
+        return;
+      }
     } else {
       setEditingPedido(null);
       setPedidoForm({
@@ -404,6 +421,7 @@ const AdminPedidos = () => {
         table_id: '',
         waiter_session_id: '',
         status: 'pending',
+        notes: '',
         items: []
       });
     }
@@ -430,6 +448,7 @@ const AdminPedidos = () => {
       table_id: '',
       waiter_session_id: '',
       status: 'pending',
+      notes: '',
       items: []
     });
     setErrors({});
@@ -552,10 +571,21 @@ const AdminPedidos = () => {
     
     setIsSubmitting(true);
     try {
+      const orderData = {
+        ...pedidoForm,
+        items: pedidoForm.items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          modifiers: item.modifiers || []
+        }))
+      };
+
       if (editingPedido) {
-        await api.put(`/orders/${editingPedido.id}`, pedidoForm);
+        await api.put(`/orders/${editingPedido.id}`, orderData);
       } else {
-        await api.post('/orders', pedidoForm);
+        await api.post('/orders', orderData);
       }
       
       handleCloseModal();
@@ -564,7 +594,7 @@ const AdminPedidos = () => {
       setPedidos(response.data);
     } catch (err) {
       console.error('Erro ao salvar pedido:', err);
-      alert('Erro ao salvar pedido');
+      alert('Erro ao salvar pedido: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -582,6 +612,11 @@ const AdminPedidos = () => {
       console.error('Erro ao alterar status:', err);
       alert('Erro ao alterar status do pedido');
     }
+  };
+
+  const handleViewPedido = async (pedido) => {
+    setViewingPedido(pedido);
+    setViewModalOpen(true);
   };
 
   const handleDeletePedido = async (pedidoId) => {
@@ -768,8 +803,9 @@ const AdminPedidos = () => {
                   <td>{formatDate(pedido.created_at)}</td>
                   <td>
                     <div className="action-buttons">
+                      <button className="action-btn view" onClick={() => handleViewPedido(pedido)}>👁️</button>
                       <button className="action-btn edit" onClick={() => handleOpenModal(pedido)}>✏️</button>
-                      <button className="action-btn view" onClick={() => handleDeletePedido(pedido.id)}>🗑️</button>
+                      <button className="action-btn delete" onClick={() => handleDeletePedido(pedido.id)}>🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -828,6 +864,20 @@ const AdminPedidos = () => {
                 <MenuItem value="cancelled">Cancelado</MenuItem>
               </Select>
             </FormControl>
+          </Box>
+
+          {/* Campo de Observações */}
+          <Box mb={3}>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Observações"
+              placeholder="Observações especiais para a cozinha, cliente, etc..."
+              value={pedidoForm.notes || ''}
+              onChange={(e) => setPedidoForm(prev => ({ ...prev, notes: e.target.value }))}
+              variant="outlined"
+            />
           </Box>
 
           <Typography variant="h6" gutterBottom>
@@ -972,6 +1022,18 @@ const AdminPedidos = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Componente de Visualização Detalhada */}
+      <OrderDetailView
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        orderId={viewingPedido?.id}
+        onOrderUpdated={() => {
+          // Recarregar lista de pedidos quando uma observação for adicionada
+          fetchPedidos(false);
+        }}
+      />
+
     </div>
   );
 };
