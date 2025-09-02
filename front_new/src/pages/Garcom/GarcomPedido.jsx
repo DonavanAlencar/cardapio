@@ -30,6 +30,8 @@ import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import api from '../../services/api';
+import { useStockValidation } from '../../hooks/useStockValidation';
+import StockBadge from '../../components/UI/StockBadge';
 
 const GarcomPedido = () => {
   const { pedidoId } = useParams();
@@ -44,6 +46,11 @@ const GarcomPedido = () => {
   const [categories, setCategories] = useState([]);
   const [modifiers, setModifiers] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stockInfo, setStockInfo] = useState(null);
+  const [stockError, setStockError] = useState(null);
+  
+  // Hook para validação de estoque
+  const { checkProductStock, loading: stockLoading } = useStockValidation();
 
   useEffect(() => {
     if (pedidoId) {
@@ -80,8 +87,58 @@ const GarcomPedido = () => {
     }
   };
 
+  // Função para verificar estoque quando produto é selecionado
+  const handleProductSelection = async (productId) => {
+    const product = products.find(p => p.id === productId);
+    setSelectedProduct(product);
+    setSelectedModifiers([]);
+    setStockInfo(null);
+    setStockError(null);
+    
+    if (product) {
+      try {
+        const stockResult = await checkProductStock(product.id, quantity);
+        setStockInfo(stockResult);
+        
+        if (!stockResult.hasStock) {
+          setStockError(`Produto sem estoque suficiente. Disponível: ${stockResult.availableStock}`);
+        }
+      } catch (err) {
+        setStockError('Erro ao verificar estoque');
+        console.error('Erro ao verificar estoque:', err);
+      }
+    }
+  };
+
+  // Função para verificar estoque quando quantidade muda
+  const handleQuantityChange = async (newQuantity) => {
+    setQuantity(newQuantity);
+    
+    if (selectedProduct && newQuantity > 0) {
+      try {
+        const stockResult = await checkProductStock(selectedProduct.id, newQuantity);
+        setStockInfo(stockResult);
+        
+        if (!stockResult.hasStock) {
+          setStockError(`Quantidade solicitada (${newQuantity}) excede estoque disponível (${stockResult.availableStock})`);
+        } else {
+          setStockError(null);
+        }
+      } catch (err) {
+        setStockError('Erro ao verificar estoque');
+        console.error('Erro ao verificar estoque:', err);
+      }
+    }
+  };
+
   const handleAddItem = () => {
     if (!selectedProduct || quantity <= 0) return;
+    
+    // Validação de estoque antes de adicionar
+    if (stockInfo && !stockInfo.hasStock) {
+      alert(`Não é possível adicionar este item: ${stockError}`);
+      return;
+    }
 
     const newItem = {
       product_id: selectedProduct.id,
@@ -101,6 +158,8 @@ const GarcomPedido = () => {
     setSelectedProduct(null);
     setQuantity(1);
     setSelectedModifiers([]);
+    setStockInfo(null);
+    setStockError(null);
     setModalOpen(false);
   };
 
@@ -341,11 +400,7 @@ const GarcomPedido = () => {
               <InputLabel>Produto</InputLabel>
               <Select
                 value={selectedProduct?.id || ''}
-                onChange={(e) => {
-                  const product = products.find(p => p.id === e.target.value);
-                  setSelectedProduct(product);
-                  setSelectedModifiers([]);
-                }}
+                onChange={(e) => handleProductSelection(e.target.value)}
                 label="Produto"
               >
                 {products
@@ -360,13 +415,34 @@ const GarcomPedido = () => {
 
             {selectedProduct && (
               <>
+                {/* Badge de status de estoque */}
+                {stockInfo && (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <StockBadge 
+                      stockStatus={stockInfo.hasStock ? 'available' : 'out_of_stock'}
+                      availableStock={stockInfo.availableStock}
+                      showQuantity={true}
+                    />
+                    {stockLoading && <CircularProgress size={20} />}
+                  </Box>
+                )}
+                
+                {/* Alerta de erro de estoque */}
+                {stockError && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {stockError}
+                  </Alert>
+                )}
+
                 <TextField
                   label="Quantidade"
                   type="number"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
                   fullWidth
                   inputProps={{ min: 1 }}
+                  error={!!stockError}
+                  helperText={stockError ? 'Quantidade não disponível' : ''}
                 />
 
                 {modifiers.filter(m => m.product_id === selectedProduct.id).length > 0 && (
@@ -403,9 +479,9 @@ const GarcomPedido = () => {
           <Button
             onClick={handleAddItem}
             variant="contained"
-            disabled={!selectedProduct || quantity <= 0}
+            disabled={!selectedProduct || quantity <= 0 || (stockInfo && !stockInfo.hasStock) || stockLoading}
           >
-            Adicionar ao Pedido
+            {stockLoading ? 'Verificando...' : 'Adicionar ao Pedido'}
           </Button>
         </DialogActions>
       </Dialog>

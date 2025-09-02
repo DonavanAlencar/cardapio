@@ -31,6 +31,8 @@ import {
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import api from '../../services/api';
 import webSocketService from '../../services/websocket';
+import { useStockValidation } from '../../hooks/useStockValidation';
+import StockBadge from '../../components/UI/StockBadge';
 import '../Orders/Orders.css';
 
 // Função utilitária para formatar valores monetários de forma segura
@@ -101,6 +103,30 @@ const AdminPedidos = () => {
   // Estados para filtros
   const [statusFilter, setStatusFilter] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
+  
+  // Estados para validação de estoque
+  const { checkProductStock, loading: stockLoading, error: stockError } = useStockValidation();
+  const [stockInfo, setStockInfo] = useState(null);
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+
+  // Efeito para aplicar filtros de produtos
+  useEffect(() => {
+    let filtered = products;
+    
+    // Filtro por categoria
+    if (selectedCategory) {
+      filtered = filtered.filter(p => p.category_id === selectedCategory);
+    }
+    
+    // Filtro por disponibilidade (apenas produtos com estoque)
+    if (showOnlyAvailable) {
+      // Por enquanto, vamos assumir que todos os produtos têm estoque
+      // Em uma implementação real, você faria uma chamada para verificar estoque
+      filtered = filtered; // TODO: Implementar verificação real de estoque
+    }
+    
+    setFilteredProducts(filtered);
+  }, [products, selectedCategory, showOnlyAvailable]);
 
   useEffect(() => {
     const fetchPedidos = async (isInitialLoad = false) => {
@@ -233,9 +259,9 @@ const AdminPedidos = () => {
       
       let tables;
       try {
-        // Timeout de 5 segundos para ativar fallback rapidamente
+        // Timeout de 3 segundos para ativar fallback rapidamente
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Timeout rápido - ativando fallback')), 5000);
+          setTimeout(() => reject(new Error('Timeout rápido - ativando fallback')), 3000);
         });
         
         const apiPromise = api.get('/tables', { __silent: true });
@@ -245,7 +271,7 @@ const AdminPedidos = () => {
         tables = response.data;
         
       } catch (error) {
-        console.warn('🔄 [AdminPedidos] API de mesas falhou, usando dados mockados...');
+        console.warn('🔄 [AdminPedidos] API de mesas falhou, usando dados mockados...', error.message);
         // FALLBACK: Dados mockados para mesas
         tables = [
           { id: 1, branch_id: 1, table_number: 'Mesa 1', capacity: 4, status: 'available' },
@@ -264,17 +290,27 @@ const AdminPedidos = () => {
       const loadDataWithFallback = async (endpoint, label, fallbackData) => {
         try {
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout rápido')), 3000);
+            setTimeout(() => reject(new Error('Timeout rápido')), 5000);
           });
           
           const apiPromise = api.get(endpoint, { __silent: true });
           const response = await Promise.race([apiPromise, timeoutPromise]);
           
-          console.log(`✅ [AdminPedidos] ${label} carregados da API:`, response.data.length, 'registros');
-          return response.data;
+          // Verificar se a resposta tem dados válidos
+          const data = response.data;
+          if (Array.isArray(data)) {
+            console.log(`✅ [AdminPedidos] ${label} carregados da API:`, data.length, 'registros');
+            return data;
+          } else if (data && Array.isArray(data.products)) {
+            console.log(`✅ [AdminPedidos] ${label} carregados da API:`, data.products.length, 'registros');
+            return data.products;
+          } else {
+            console.warn(`⚠️ [AdminPedidos] ${label} - formato de resposta inesperado:`, data);
+            return fallbackData;
+          }
           
         } catch (error) {
-          console.warn(`⚠️ [AdminPedidos] ${label} falharam, usando dados mockados...`);
+          console.warn(`⚠️ [AdminPedidos] ${label} falharam, usando dados mockados...`, error.message);
           return fallbackData;
         }
       };
@@ -289,7 +325,7 @@ const AdminPedidos = () => {
       ];
       
       const mockProducts = [
-        { id: 1, name: 'Produto Padrão', price: 10.00, category_id: 1, description: 'Produto padrão do sistema' }
+        { id: 1, name: 'Produto Padrão', price: 10.00, category_id: 1, category: { name: 'Categoria Padrão' }, description: 'Produto padrão do sistema' }
       ];
       
       const mockModifiers = [
@@ -300,14 +336,25 @@ const AdminPedidos = () => {
       const [customers, categories, products, modifiers] = await Promise.all([
         loadDataWithFallback('/customers', 'clientes', mockCustomers),
         loadDataWithFallback('/product-categories', 'categorias', mockCategories),
-        loadDataWithFallback('/products', 'produtos', mockProducts),
+        loadDataWithFallback('/products?status=active', 'produtos', mockProducts),
         loadDataWithFallback('/product-modifiers', 'modificadores', mockModifiers)
       ]);
+      
+      // Enriquecer produtos com informações de categoria
+      // Verificar se products é um array, se não for, extrair do objeto de resposta
+      const productsArray = Array.isArray(products) ? products : (products.products || []);
+      const enrichedProducts = productsArray.map(product => {
+        const category = categories.find(cat => cat.id === product.category_id);
+        return {
+          ...product,
+          category: category || null
+        };
+      });
       
       // Atualizar estados
       setCustomers(customers);
       setCategories(categories);
-      setProducts(products);
+      setProducts(enrichedProducts);
       setModifiers(modifiers);
       
       console.log('✅ [AdminPedidos] Carregamento de dados concluído!');
@@ -392,23 +439,31 @@ const AdminPedidos = () => {
     setSelectedModifiers([]);
     setQuantity(1);
     setTotalAmount(0);
+    setStockInfo(null);
+    setShowOnlyAvailable(false);
   };
 
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);
-    if (categoryId) {
-      const filtered = products.filter(p => p.category_id === categoryId);
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts([]);
-    }
     setSelectedProduct(null);
   };
 
-  const handleProductSelect = (product) => {
+  const handleProductSelect = async (product) => {
     setSelectedProduct(product);
     setSelectedModifiers([]);
     setQuantity(1);
+    setStockInfo(null);
+    
+    if (product) {
+      try {
+        const stockData = await checkProductStock(product.id, 1);
+        setStockInfo(stockData);
+      } catch (error) {
+        console.error('Erro ao verificar estoque:', error);
+        setStockInfo({ hasStock: false, availableStock: 0, message: 'Erro ao verificar estoque' });
+      }
+    }
+    
     calculateTotal();
   };
 
@@ -435,8 +490,30 @@ const AdminPedidos = () => {
     return total;
   };
 
+  const handleQuantityChange = async (newQuantity) => {
+    setQuantity(newQuantity);
+    
+    if (selectedProduct && newQuantity > 0) {
+      try {
+        const stockData = await checkProductStock(selectedProduct.id, newQuantity);
+        setStockInfo(stockData);
+      } catch (error) {
+        console.error('Erro ao verificar estoque:', error);
+        setStockInfo({ hasStock: false, availableStock: 0, message: 'Erro ao verificar estoque' });
+      }
+    }
+    
+    calculateTotal();
+  };
+
   const addItemToOrder = () => {
     if (!selectedProduct || quantity <= 0) return;
+    
+    // Verificar se há estoque disponível
+    if (stockInfo && !stockInfo.hasStock) {
+      alert(`Produto sem estoque disponível. ${stockInfo.message || 'Estoque insuficiente.'}`);
+      return;
+    }
     
     const newItem = {
       product_id: selectedProduct.id,
@@ -457,6 +534,7 @@ const AdminPedidos = () => {
     setSelectedModifiers([]);
     setQuantity(1);
     setTotalAmount(0);
+    setStockInfo(null);
   };
 
   const removeItemFromOrder = (index) => {
@@ -755,6 +833,20 @@ const AdminPedidos = () => {
           <Typography variant="h6" gutterBottom>
             Adicionar Itens
           </Typography>
+          
+          {/* Filtro Apenas Disponíveis */}
+          <Box display="flex" alignItems="center" gap={2} mb={2}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showOnlyAvailable}
+                  onChange={(e) => setShowOnlyAvailable(e.target.checked)}
+                />
+              }
+              label="Apenas produtos disponíveis"
+            />
+          </Box>
+          
           <Box display="flex" gap={2} mb={2}>
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Categoria</InputLabel>
@@ -777,22 +869,54 @@ const AdminPedidos = () => {
               value={selectedProduct}
               onChange={(_, newValue) => handleProductSelect(newValue)}
               renderInput={(params) => <TextField {...params} label="Produto" />}
+              renderOption={(props, option) => (
+                <Box component="li" {...props}>
+                  <Box>
+                    <Typography variant="body1">{option.name}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      R$ {formatCurrency(option.price)} - {option.category?.name || 'Sem categoria'}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
               sx={{ minWidth: 200 }}
+              loading={stockLoading}
+              noOptionsText={filteredProducts.length === 0 ? "Nenhum produto encontrado" : "Digite para buscar produtos"}
             />
             <TextField
               type="number"
               label="Quantidade"
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
               sx={{ width: 100 }}
             />
-            <Button variant="contained" onClick={addItemToOrder} disabled={!selectedProduct || quantity <= 0}>
-              Adicionar
+            <Button 
+              variant="contained" 
+              onClick={addItemToOrder} 
+              disabled={!selectedProduct || quantity <= 0 || (stockInfo && !stockInfo.hasStock) || stockLoading}
+            >
+              {stockLoading ? 'Verificando...' : 'Adicionar'}
             </Button>
           </Box>
 
           {selectedProduct && (
             <Box mb={2}>
+              {/* Status de Estoque */}
+              {stockInfo && (
+                <Box mb={2}>
+                  <StockBadge 
+                    stockStatus={stockInfo.hasStock ? 'available' : 'out_of_stock'}
+                    availableStock={stockInfo.availableStock}
+                    showQuantity={true}
+                  />
+                  {stockError && (
+                    <Alert severity="error" sx={{ mt: 1 }}>
+                      {stockError}
+                    </Alert>
+                  )}
+                </Box>
+              )}
+              
               <Typography variant="subtitle2" gutterBottom>
                 Modificadores disponíveis:
               </Typography>

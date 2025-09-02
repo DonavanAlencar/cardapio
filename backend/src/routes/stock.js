@@ -310,4 +310,142 @@ router.get('/locations', auth(), authorizeStock, async (req, res) => {
   }
 });
 
+// GET /api/stock/check-product/:productId - Verificar estoque de um produto específico
+router.get('/check-product/:productId', auth(), async (req, res) => {
+  const { productId } = req.params;
+  const { quantity = 1 } = req.query;
+  
+  try {
+    // Buscar ingredientes necessários para o produto
+    const [ingredientsRows] = await pool.query(`
+      SELECT 
+        pi.ingrediente_id,
+        pi.quantidade as required_quantity,
+        i.nome as ingredient_name,
+        i.quantidade_estoque as available_stock,
+        i.quantidade_minima as minimum_stock
+      FROM produto_ingredientes pi
+      JOIN ingredientes i ON pi.ingrediente_id = i.id
+      WHERE pi.product_id = ? AND i.ativo = 1
+    `, [productId]);
+    
+    if (ingredientsRows.length === 0) {
+      return res.json({
+        hasStock: true,
+        availableStock: 999, // Produto sem ingredientes = sempre disponível
+        ingredients: [],
+        message: 'Produto sem ingredientes controlados'
+      });
+    }
+    
+    let hasStock = true;
+    let availableStock = Infinity;
+    const ingredients = [];
+    
+    for (const ingredient of ingredientsRows) {
+      const requiredQuantity = parseFloat(ingredient.required_quantity) * parseInt(quantity);
+      const availableQuantity = parseFloat(ingredient.available_stock);
+      
+      ingredients.push({
+        id: ingredient.ingrediente_id,
+        name: ingredient.ingredient_name,
+        required: requiredQuantity,
+        available: availableQuantity,
+        minimum: parseFloat(ingredient.minimum_stock)
+      });
+      
+      if (availableQuantity < requiredQuantity) {
+        hasStock = false;
+      }
+      
+      // Calcular quantos produtos podem ser feitos com este ingrediente
+      const maxProducts = Math.floor(availableQuantity / parseFloat(ingredient.required_quantity));
+      availableStock = Math.min(availableStock, maxProducts);
+    }
+    
+    res.json({
+      hasStock,
+      availableStock: availableStock === Infinity ? 999 : availableStock,
+      ingredients,
+      message: hasStock ? 'Produto disponível' : 'Produto sem estoque suficiente'
+    });
+    
+  } catch (error) {
+    console.error('Erro ao verificar estoque do produto:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// POST /api/stock/check-multiple-products - Verificar estoque de múltiplos produtos
+router.post('/check-multiple-products', auth(), async (req, res) => {
+  const { products } = req.body; // Array de {productId, quantity}
+  
+  try {
+    const results = [];
+    
+    for (const product of products) {
+      const [ingredientsRows] = await pool.query(`
+        SELECT 
+          pi.ingrediente_id,
+          pi.quantidade as required_quantity,
+          i.nome as ingredient_name,
+          i.quantidade_estoque as available_stock,
+          i.quantidade_minima as minimum_stock
+        FROM produto_ingredientes pi
+        JOIN ingredientes i ON pi.ingrediente_id = i.id
+        WHERE pi.product_id = ? AND i.ativo = 1
+      `, [product.productId]);
+      
+      if (ingredientsRows.length === 0) {
+        results.push({
+          productId: product.productId,
+          hasStock: true,
+          availableStock: 999,
+          ingredients: [],
+          message: 'Produto sem ingredientes controlados'
+        });
+        continue;
+      }
+      
+      let hasStock = true;
+      let availableStock = Infinity;
+      const ingredients = [];
+      
+      for (const ingredient of ingredientsRows) {
+        const requiredQuantity = parseFloat(ingredient.required_quantity) * parseInt(product.quantity);
+        const availableQuantity = parseFloat(ingredient.available_stock);
+        
+        ingredients.push({
+          id: ingredient.ingrediente_id,
+          name: ingredient.ingredient_name,
+          required: requiredQuantity,
+          available: availableQuantity,
+          minimum: parseFloat(ingredient.minimum_stock)
+        });
+        
+        if (availableQuantity < requiredQuantity) {
+          hasStock = false;
+        }
+        
+        const maxProducts = Math.floor(availableQuantity / parseFloat(ingredient.required_quantity));
+        availableStock = Math.min(availableStock, maxProducts);
+      }
+      
+      results.push({
+        productId: product.productId,
+        hasStock,
+        availableStock: availableStock === Infinity ? 999 : availableStock,
+        ingredients,
+        message: hasStock ? 'Produto disponível' : 'Produto sem estoque suficiente'
+      });
+    }
+    
+    res.json({ results });
+    
+  } catch (error) {
+    console.error('Erro ao verificar estoque múltiplo:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
 module.exports = router;

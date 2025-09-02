@@ -3,12 +3,12 @@
 ## Resumo Executivo
 
 **Total de regras analisadas:** 47
-- **Convergência total:** 35 regras (74%)
-- **Convergência parcial:** 8 regras (17%)
-- **Divergência:** 4 regras (9%)
+- **Convergência total:** 36 regras (77%)
+- **Convergência parcial:** 7 regras (15%)
+- **Divergência:** 4 regras (8%)
 
 **Principais riscos identificados:**
-1. **Validação de estoque** - Frontend não valida estoque antes de criar pedidos
+1. ✅ **Validação de estoque** - IMPLEMENTADO: Frontend valida estoque antes de criar pedidos
 2. **Controle de roles** - Sistema implementado mas validação inconsistente
 3. **Validação de preços** - Falta validação de valores negativos/zero
 4. **Gestão de sessões** - Timeout não configurado
@@ -21,7 +21,7 @@
 | **BR-002: Controle de Acesso por Role** | `Login.jsx:150-155` | `/auth/login` | `users`, `roles`, `user_roles` | ⚠️ **Parcial** | ⚠️ Sim | Médio | Implementar validação consistente |
 | **BR-003: Validação de Estoque Mínimo** | `AdminIngredients.jsx:25-30` | `/ingredients` | `ingredientes.quantidade_minima` | ✅ **Sim** | ❌ Não | Baixo | Manter como está |
 | **BR-004: Movimentação de Estoque** | `AdminStockMovements.jsx:35-45` | `/stock-movements` | `estoque_movimentos.tipo_movimento` | ✅ **Sim** | ❌ Não | Baixo | Manter como está |
-| **BR-005: Validação de Pedidos** | `AdminPedidos.jsx:240-250` | `/orders` | - | ⚠️ **Parcial** | ⚠️ Sim | Médio | Adicionar validação de estoque |
+| **BR-005: Validação de Pedidos** | `GarcomPedido.jsx:134-141`, `Cardapio.jsx:88-104` | `/orders`, `/stock/check-product` | `ingredientes`, `produto_ingredientes` | ✅ **Sim** | ❌ Não | Baixo | Implementado com validação de estoque |
 | **BR-006: Cálculo de Preços** | `AdminPedidos.jsx:190-200` | `/orders` | - | ⚠️ **Parcial** | ⚠️ Sim | Médio | Validar preços no frontend |
 | **BR-007: Controle de Status de Pedidos** | `AdminPedidos.jsx:260-270` | `/orders/{id}` | `orders.status` enum | ✅ **Sim** | ❌ Não | Baixo | Manter como está |
 | **BR-008: Gestão de Mesas** | `AdminMesas.jsx` | `/tables` | `tables.status` enum | ✅ **Sim** | ❌ Não | Baixo | Manter como está |
@@ -86,10 +86,15 @@
 
 ## Lacunas Identificadas
 
-### 1. Validação de Estoque (Crítica)
+### 1. ✅ Validação de Estoque (IMPLEMENTADO)
 - **Problema:** Frontend não valida estoque antes de criar pedidos
 - **Risco:** Pedidos podem ser criados sem ingredientes disponíveis
-- **Solução:** Implementar validação de estoque no frontend antes de submeter pedidos
+- **Solução:** ✅ IMPLEMENTADO - Validação de estoque no frontend e backend
+  - Hook `useStockValidation` para verificar estoque em tempo real
+  - Componente `StockBadge` para mostrar status de estoque
+  - Endpoints `/stock/check-product` e `/stock/check-multiple-products`
+  - Validação transacional no backend antes de confirmar pedidos
+  - Filtro "Apenas disponíveis" no cardápio público
 
 ### 2. Controle de Acesso por Roles (Alto)
 - **Problema:** Sistema de roles implementado mas validação inconsistente
@@ -109,10 +114,11 @@
 ## Recomendações de Implementação
 
 ### Prioridade Crítica
-1. **Validação de Estoque**
-   - Implementar verificação de estoque no frontend antes de criar pedidos
-   - Adicionar validação no backend para garantir integridade
-   - Considerar implementar triggers no banco para controle automático
+1. ✅ **Validação de Estoque** - IMPLEMENTADO
+   - ✅ Verificação de estoque no frontend antes de criar pedidos
+   - ✅ Validação no backend para garantir integridade
+   - ✅ Validação transacional com rollback automático
+   - ✅ Componentes reutilizáveis para status de estoque
 
 ### Prioridade Alta
 1. **Controle de Acesso por Roles**

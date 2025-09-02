@@ -16,12 +16,16 @@ import {
   IconButton,
   Badge,
   Divider,
-  Button
+  Button,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import api from '../../services/api';
 import { getImageUrl } from '../../config/images';
+import { useStockValidation } from '../../hooks/useStockValidation';
+import StockBadge from '../../components/UI/StockBadge';
 
 const Cardapio = () => {
   const [categories, setCategories] = useState([]);
@@ -29,6 +33,11 @@ const Cardapio = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState([]);
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  const [productStockInfo, setProductStockInfo] = useState({});
+  
+  // Hook para validação de estoque
+  const { checkProductStock, getLowStockProducts } = useStockValidation();
 
   useEffect(() => {
     fetchData();
@@ -43,7 +52,11 @@ const Cardapio = () => {
       ]);
       
       setCategories(categoriesRes.data);
-      setProducts(productsRes.data.products.filter(p => p.status === 'active'));
+      const activeProducts = productsRes.data.products.filter(p => p.status === 'active');
+      setProducts(activeProducts);
+      
+      // Verificar estoque de todos os produtos
+      await checkAllProductsStock(activeProducts);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     } finally {
@@ -51,11 +64,45 @@ const Cardapio = () => {
     }
   };
 
+  // Função para verificar estoque de todos os produtos
+  const checkAllProductsStock = async (productsList) => {
+    const stockInfo = {};
+    
+    for (const product of productsList) {
+      try {
+        const result = await checkProductStock(product.id, 1);
+        stockInfo[product.id] = result;
+      } catch (err) {
+        console.error(`Erro ao verificar estoque do produto ${product.id}:`, err);
+        stockInfo[product.id] = { hasStock: false, availableStock: 0 };
+      }
+    }
+    
+    setProductStockInfo(stockInfo);
+  };
+
   const handleCategoryChange = (event, newValue) => {
     setSelectedCategory(newValue);
   };
 
-  const addToCart = (product) => {
+  const addToCart = async (product) => {
+    // Verificar estoque antes de adicionar
+    const stockInfo = productStockInfo[product.id];
+    
+    if (!stockInfo || !stockInfo.hasStock) {
+      alert('Este produto não está disponível no momento');
+      return;
+    }
+    
+    // Verificar se a quantidade no carrinho + 1 não excede o estoque
+    const existingItem = cart.find(item => item.id === product.id);
+    const currentQuantity = existingItem ? existingItem.quantity : 0;
+    
+    if (currentQuantity + 1 > stockInfo.availableStock) {
+      alert(`Quantidade solicitada excede estoque disponível (${stockInfo.availableStock})`);
+      return;
+    }
+    
     setCart(prev => {
       const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
@@ -95,9 +142,16 @@ const Cardapio = () => {
     return cart.reduce((count, item) => count + item.quantity, 0);
   };
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category_id === selectedCategory);
+  const filteredProducts = products.filter(product => {
+    // Filtro por categoria
+    const categoryMatch = selectedCategory === 'all' || product.category_id === selectedCategory;
+    
+    // Filtro por disponibilidade
+    const stockInfo = productStockInfo[product.id];
+    const availabilityMatch = !showOnlyAvailable || (stockInfo && stockInfo.hasStock);
+    
+    return categoryMatch && availabilityMatch;
+  });
 
   if (loading) {
     return (
@@ -142,6 +196,20 @@ const Cardapio = () => {
               />
             ))}
           </Tabs>
+          
+          {/* Filtro de disponibilidade */}
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showOnlyAvailable}
+                  onChange={(e) => setShowOnlyAvailable(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Apenas disponíveis"
+            />
+          </Box>
         </Box>
 
         {/* Grid de Produtos */}
@@ -189,14 +257,25 @@ const Cardapio = () => {
                       R$ {product.price.toFixed(2)}
                     </Typography>
                     
-                    {product.preparation_time && (
-                      <Chip
-                        label={`${product.preparation_time} min`}
-                        size="small"
-                        color="info"
-                        variant="outlined"
-                      />
-                    )}
+                    <Box display="flex" gap={1} alignItems="center">
+                      {product.preparation_time && (
+                        <Chip
+                          label={`${product.preparation_time} min`}
+                          size="small"
+                          color="info"
+                          variant="outlined"
+                        />
+                      )}
+                      
+                      {/* Badge de estoque */}
+                      {productStockInfo[product.id] && (
+                        <StockBadge 
+                          stockStatus={productStockInfo[product.id].hasStock ? 'available' : 'out_of_stock'}
+                          availableStock={productStockInfo[product.id].availableStock}
+                          size="small"
+                        />
+                      )}
+                    </Box>
                   </Box>
                   
                   <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -205,10 +284,14 @@ const Cardapio = () => {
                     </Typography>
                     
                     <Chip
-                      label="Adicionar"
-                      color="primary"
+                      label={productStockInfo[product.id]?.hasStock ? "Adicionar" : "Sem estoque"}
+                      color={productStockInfo[product.id]?.hasStock ? "primary" : "default"}
                       onClick={() => addToCart(product)}
-                      sx={{ cursor: 'pointer' }}
+                      disabled={!productStockInfo[product.id]?.hasStock}
+                      sx={{ 
+                        cursor: productStockInfo[product.id]?.hasStock ? 'pointer' : 'not-allowed',
+                        opacity: productStockInfo[product.id]?.hasStock ? 1 : 0.6
+                      }}
                     />
                   </Box>
                 </CardContent>

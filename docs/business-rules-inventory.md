@@ -8,14 +8,14 @@
 - **Banco de dados:** 6 regras
 
 **Top 5 riscos identificados:**
-1. **Validação de estoque inconsistente** - Frontend não valida estoque antes de criar pedidos
+1. ✅ **Validação de estoque** - IMPLEMENTADO: Frontend valida estoque antes de criar pedidos
 2. **Controle de permissões por role** - Sistema de roles implementado mas validação inconsistente
 3. **Validação de preços** - Falta validação de preços negativos ou zero
 4. **Gestão de sessões** - Timeout de sessão não configurado
 5. **Validação de dados obrigatórios** - Alguns campos obrigatórios não validados no frontend
 
 **Lacunas críticas:**
-- Validação de estoque no frontend
+- ✅ Validação de estoque no frontend - IMPLEMENTADO
 - Controle de acesso baseado em roles
 - Validação de preços e descontos
 - Gestão de sessões de usuário
@@ -76,14 +76,18 @@
 - **Status**: Implemented. **Risco**: Baixo.
 
 ### BR-005: Validação de Pedidos
-- **Descrição**: Regras para criação e edição de pedidos
-- **Frontend**: `src/pages/AdminPedidos.jsx:240-250` (validação de formulário)
-- **Backend**: API `/orders` com validação
+- **Descrição**: Regras para criação e edição de pedidos com validação de estoque
+- **Frontend**: `src/pages/GarcomPedido.jsx:134-141`, `src/pages/Public/Cardapio.jsx:88-104` (validação de estoque)
+- **Backend**: API `/orders` e `/stock/check-product` com validação
+- **Banco**: `ingredientes`, `produto_ingredientes`, `estoque_movimentos`
 - **Regras**: 
   - Cliente obrigatório
   - Mesa obrigatória
   - Pelo menos um item
-- **Status**: Implemented. **Risco**: Médio.
+  - ✅ Validação de estoque antes de criar pedido
+  - ✅ Verificação de ingredientes disponíveis
+  - ✅ Cálculo de quantidade máxima disponível
+- **Status**: ✅ Implemented com validação de estoque. **Risco**: Baixo.
 
 ### BR-006: Cálculo de Preços
 - **Descrição**: Cálculo automático de preços totais
@@ -483,7 +487,11 @@
 ## Backlog de Correções Sugeridas
 
 ### Prioridade Alta
-1. **Implementar validação de estoque no frontend** antes de criar pedidos
+1. ✅ **Implementar validação de estoque no frontend** - IMPLEMENTADO
+   - Hook `useStockValidation` para verificação em tempo real
+   - Componente `StockBadge` para status visual
+   - Validação antes de adicionar ao carrinho/pedido
+   - Filtro "Apenas disponíveis" no cardápio
 2. **Reforçar controle de acesso baseado em roles** em todas as rotas
 3. **Implementar validação de preços** para evitar valores negativos ou zero
 4. **Configurar timeout de sessão** para usuários logados

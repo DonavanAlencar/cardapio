@@ -80,6 +80,29 @@ router.post('/', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
     let totalAmount = 0;
 
     if (items && items.length > 0) {
+      // Primeiro, validar estoque de todos os itens antes de processar qualquer um
+      for (const item of items) {
+        const [ingredientsRows] = await connection.query(
+          'SELECT ingrediente_id, quantidade FROM produto_ingredientes WHERE product_id = ?',
+          [item.product_id]
+        );
+
+        for (const ing of ingredientsRows) {
+          const requiredQuantity = ing.quantidade * item.quantity;
+          const [stockRows] = await connection.query(
+            'SELECT quantidade_estoque, nome FROM ingredientes WHERE id = ? AND ativo = 1',
+            [ing.ingrediente_id]
+          );
+          if (stockRows.length === 0) {
+            throw new Error(`Ingrediente ${ing.ingrediente_id} não encontrado ou inativo`);
+          }
+          if (stockRows[0].quantidade_estoque < requiredQuantity) {
+            throw new Error(`Estoque insuficiente para ${stockRows[0].nome}. Disponível: ${stockRows[0].quantidade_estoque}, Necessário: ${requiredQuantity}`);
+          }
+        }
+      }
+
+      // Se chegou até aqui, todos os itens têm estoque suficiente
       for (const item of items) {
         const [productPriceRows] = await connection.query(
           'SELECT price FROM product_prices WHERE product_id = ? AND (end_date IS NULL OR end_date >= CURDATE()) ORDER BY start_date DESC LIMIT 1',
@@ -89,7 +112,7 @@ router.post('/', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
         const totalPrice = unitPrice * item.quantity;
         totalAmount += totalPrice;
 
-        // Dedução de estoque
+        // Dedução de estoque (já validado acima)
         const [ingredientsRows] = await connection.query(
           'SELECT ingrediente_id, quantidade FROM produto_ingredientes WHERE product_id = ?',
           [item.product_id]
@@ -97,16 +120,15 @@ router.post('/', auth(), authorizeWaiterAdminOrManager, async (req, res) => {
 
         for (const ing of ingredientsRows) {
           const requiredQuantity = ing.quantidade * item.quantity;
-          const [stockRows] = await connection.query(
-            'SELECT quantidade_estoque FROM ingredientes WHERE id = ?',
-            [ing.ingrediente_id]
-          );
-          if (stockRows.length === 0 || stockRows[0].quantidade_estoque < requiredQuantity) {
-            throw new Error(`Estoque insuficiente para o ingrediente ${ing.ingrediente_id}`);
-          }
           await connection.query(
             'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
             [requiredQuantity, ing.ingrediente_id]
+          );
+          
+          // Registrar movimentação de estoque
+          await connection.query(
+            'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ?, NOW())',
+            [ing.ingrediente_id, requiredQuantity, `order:${orderId}`]
           );
         }
 
@@ -207,11 +229,13 @@ router.post('/:orderId/items', auth(), authorizeWaiterAdminOrManager, async (req
       [kitchenTicketId, newItemId]
     );
 
-    // Dedução de estoque para produto base
+    // Primeiro, validar estoque antes de processar
     const [ingredientsRows] = await connection.query(
       'SELECT ingrediente_id, quantidade FROM produto_ingredientes WHERE product_id = ?',
       [product_id]
     );
+    
+    // Validar estoque de ingredientes base
     for (const ing of ingredientsRows) {
       let requiredQuantity = ing.quantidade * quantity;
       // Ajustar pelo modificador se houver
@@ -226,40 +250,74 @@ router.post('/:orderId/items', auth(), authorizeWaiterAdminOrManager, async (req
       }
       if (requiredQuantity > 0) {
         const [stockRows] = await connection.query(
-          'SELECT quantidade_estoque FROM ingredientes WHERE id = ?',
+          'SELECT quantidade_estoque, nome FROM ingredientes WHERE id = ? AND ativo = 1',
           [ing.ingrediente_id]
         );
-        if (stockRows.length === 0 || stockRows[0].quantidade_estoque < requiredQuantity) {
-          throw new Error(`Estoque insuficiente para o ingrediente ${ing.ingrediente_id}`);
+        if (stockRows.length === 0) {
+          throw new Error(`Ingrediente ${ing.ingrediente_id} não encontrado ou inativo`);
         }
-        await connection.query(
-          'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
-          [requiredQuantity, ing.ingrediente_id]
-        );
-        await connection.query(
-          'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ? , NOW())',
-          [ing.ingrediente_id, requiredQuantity, `order_item:${newItemId}`]
-        );
+        if (stockRows[0].quantidade_estoque < requiredQuantity) {
+          throw new Error(`Estoque insuficiente para ${stockRows[0].nome}. Disponível: ${stockRows[0].quantidade_estoque}, Necessário: ${requiredQuantity}`);
+        }
       }
     }
-    // Dedução de estoque para ingredientes de modificadores que não estão na lista base
+    
+    // Validar estoque de ingredientes de modificadores adicionais
     for (const mod of modifiers) {
       if (mod.ingrediente_id && !ingredientsRows.some(ing => ing.ingrediente_id === mod.ingrediente_id)) {
         if (mod.tipo === 'ADICAO') {
           const requiredQuantity = (mod.fator_consumo || 1) * quantity;
           const [stockRows] = await connection.query(
-            'SELECT quantidade_estoque FROM ingredientes WHERE id = ?',
+            'SELECT quantidade_estoque, nome FROM ingredientes WHERE id = ? AND ativo = 1',
             [mod.ingrediente_id]
           );
-          if (stockRows.length === 0 || stockRows[0].quantidade_estoque < requiredQuantity) {
-            throw new Error(`Estoque insuficiente para o ingrediente ${mod.ingrediente_id}`);
+          if (stockRows.length === 0) {
+            throw new Error(`Ingrediente ${mod.ingrediente_id} não encontrado ou inativo`);
           }
+          if (stockRows[0].quantidade_estoque < requiredQuantity) {
+            throw new Error(`Estoque insuficiente para ${stockRows[0].nome}. Disponível: ${stockRows[0].quantidade_estoque}, Necessário: ${requiredQuantity}`);
+          }
+        }
+      }
+    }
+
+    // Se chegou até aqui, todos os ingredientes têm estoque suficiente
+    // Agora processar a dedução de estoque
+    for (const ing of ingredientsRows) {
+      let requiredQuantity = ing.quantidade * quantity;
+      // Ajustar pelo modificador se houver
+      for (const mod of modifiers) {
+        if (mod.ingrediente_id === ing.ingrediente_id) {
+          if (mod.tipo === 'ADICAO') {
+            requiredQuantity += (mod.fator_consumo || 1) * quantity;
+          } else if (mod.tipo === 'REMOCAO') {
+            requiredQuantity -= (mod.fator_consumo || 1) * quantity;
+          }
+        }
+      }
+      if (requiredQuantity > 0) {
+        await connection.query(
+          'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
+          [requiredQuantity, ing.ingrediente_id]
+        );
+        await connection.query(
+          'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ?, NOW())',
+          [ing.ingrediente_id, requiredQuantity, `order_item:${newItemId}`]
+        );
+      }
+    }
+    
+    // Dedução de estoque para ingredientes de modificadores que não estão na lista base
+    for (const mod of modifiers) {
+      if (mod.ingrediente_id && !ingredientsRows.some(ing => ing.ingrediente_id === mod.ingrediente_id)) {
+        if (mod.tipo === 'ADICAO') {
+          const requiredQuantity = (mod.fator_consumo || 1) * quantity;
           await connection.query(
             'UPDATE ingredientes SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?',
             [requiredQuantity, mod.ingrediente_id]
           );
           await connection.query(
-            'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ? , NOW())',
+            'INSERT INTO estoque_movimentos (ingrediente_id, tipo_movimento, quantidade, referencia, ocorrido_em) VALUES (?, "SAIDA", ?, ?, NOW())',
             [mod.ingrediente_id, requiredQuantity, `order_item:${newItemId}`]
           );
         }
