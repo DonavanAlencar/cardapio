@@ -1,0 +1,409 @@
+{
+  "project_info": {
+    "name": "Cardápio",
+    "description": "Sistema de gestão de restaurante com controle de pedidos, estoque e mesas",
+    "technology_stack": {
+      "frontend": "React",
+      "backend": "Node.js/Express",
+      "database": "MySQL"
+    },
+    "analysis_date": "2025-01-27"
+  },
+  "summary": {
+    "total_rules": 47,
+    "by_layer": {
+      "frontend": 23,
+      "backend": 18,
+      "database": 6
+    },
+    "by_category": {
+      "validation": 15,
+      "pricing": 8,
+      "permission": 6,
+      "workflow": 10,
+      "inventory": 4,
+      "compliance": 2,
+      "other": 2
+    },
+    "by_severity": {
+      "critical": 1,
+      "high": 8,
+      "medium": 15,
+      "low": 23
+    }
+  },
+  "business_rules": [
+    {
+      "rule_id": "BR-001",
+      "title": "Validação de Login",
+      "description": "Validação de credenciais de usuário com regras específicas",
+      "category": "validation",
+      "layer": ["frontend", "backend"],
+      "status": "implemented",
+      "severity": "high",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/Login.jsx", "symbol": "validateFormData", "lines": "75-85"}
+        ],
+        "snippets": [
+          "if (!email) errors.push('Email é obrigatório');",
+          "if (!password) errors.push('Senha é obrigatória');",
+          "if (email && !email.includes('@')) errors.push('Email deve conter @');",
+          "if (password && password.length < 3) errors.push('Senha deve ter pelo menos 3 caracteres');"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/auth/login", "used_by": ["Login"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["users"],
+        "fields": ["email", "password_hash"]
+      },
+      "db_artifacts": [],
+      "source_of_truth": "backend",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar validações de email e senha"
+      },
+      "notes": "Validação dupla: frontend e backend"
+    },
+    {
+      "rule_id": "BR-002",
+      "title": "Controle de Acesso por Role",
+      "description": "Redirecionamento baseado no role do usuário após login",
+      "category": "permission",
+      "layer": ["frontend", "backend"],
+      "status": "implemented",
+      "severity": "high",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/Login.jsx", "symbol": "handleSubmit", "lines": "150-155"}
+        ],
+        "snippets": [
+          "if (res.data.user.role === 'admin') {",
+          "  navigate('/admin/pedidos');",
+          "} else {",
+          "  navigate('/new-features');",
+          "}"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/auth/login", "used_by": ["Login"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["users", "roles", "user_roles"],
+        "fields": ["role"]
+      },
+      "db_artifacts": [
+        {"type": "table", "name": "roles", "definition": "Tabela de roles do sistema"},
+        {"type": "table", "name": "user_roles", "definition": "Relacionamento usuário-role"}
+      ],
+      "source_of_truth": "backend",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar redirecionamento por role"
+      },
+      "notes": "Falta validação consistente em todas as rotas"
+    },
+    {
+      "rule_id": "BR-003",
+      "title": "Validação de Estoque Mínimo",
+      "description": "Controle de estoque mínimo para ingredientes",
+      "category": "inventory",
+      "layer": ["frontend", "backend", "database"],
+      "status": "implemented",
+      "severity": "medium",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminIngredients.jsx", "symbol": "handleAddIngredient", "lines": "25-30"}
+        ],
+        "snippets": [
+          "if (!newIngredientName.trim() || !newIngredientUnit.trim()) {",
+          "  alert('Nome e unidade de medida são obrigatórios.');",
+          "  return;",
+          "}"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/ingredients", "used_by": ["AdminIngredients"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["ingredientes"],
+        "fields": ["quantidade_minima"]
+      },
+      "db_artifacts": [
+        {"type": "column", "name": "quantidade_minima", "definition": "decimal(10,2) DEFAULT 0.00"}
+      ],
+      "source_of_truth": "database",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar validação de estoque mínimo"
+      },
+      "notes": "Campo obrigatório com valor padrão 0.00"
+    },
+    {
+      "rule_id": "BR-004",
+      "title": "Movimentação de Estoque",
+      "description": "Controle de entrada e saída de ingredientes",
+      "category": "inventory",
+      "layer": ["frontend", "backend", "database"],
+      "status": "implemented",
+      "severity": "medium",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminStockMovements.jsx", "symbol": "handleRecordMovement", "lines": "35-45"}
+        ],
+        "snippets": [
+          "if (!selectedIngredientId || quantity <= 0) {",
+          "  alert('Selecione um ingrediente e insira uma quantidade válida.');",
+          "  return;",
+          "}"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/stock-movements", "used_by": ["AdminStockMovements"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["estoque_movimentos"],
+        "fields": ["tipo_movimento", "quantidade"]
+      },
+      "db_artifacts": [
+        {"type": "column", "name": "tipo_movimento", "definition": "enum('ENTRADA','SAIDA')"},
+        {"type": "column", "name": "quantidade", "definition": "decimal(10,2)"}
+      ],
+      "source_of_truth": "database",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar validação de quantidade e tipo"
+      },
+      "notes": "Quantidade deve ser > 0, tipo obrigatório"
+    },
+    {
+      "rule_id": "BR-005",
+      "title": "Validação de Pedidos",
+      "description": "Regras para criação e edição de pedidos",
+      "category": "validation",
+      "layer": ["frontend", "backend"],
+      "status": "implemented",
+      "severity": "medium",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminPedidos.jsx", "symbol": "validateForm", "lines": "240-250"}
+        ],
+        "snippets": [
+          "if (!pedidoForm.customer_id) {",
+          "  newErrors.customer_id = 'Cliente é obrigatório';",
+          "}",
+          "if (!pedidoForm.table_id) {",
+          "  newErrors.table_id = 'Mesa é obrigatória';",
+          "}",
+          "if (pedidoForm.items.length === 0) {",
+          "  newErrors.items = 'Adicione pelo menos um item ao pedido';",
+          "}"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/orders", "used_by": ["AdminPedidos"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["orders", "order_items"],
+        "fields": ["customer_id", "table_id", "items"]
+      },
+      "db_artifacts": [],
+      "source_of_truth": "backend",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar validação de pedidos vazios"
+      },
+      "notes": "Validação de campos obrigatórios e itens"
+    },
+    {
+      "rule_id": "BR-006",
+      "title": "Cálculo de Preços",
+      "description": "Cálculo automático de preços totais",
+      "category": "pricing",
+      "layer": ["frontend", "backend"],
+      "status": "implemented",
+      "severity": "low",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminPedidos.jsx", "symbol": "calculateTotal", "lines": "190-200"}
+        ],
+        "snippets": [
+          "const calculateTotal = () => {",
+          "  return pedidoForm.items.reduce((total, item) => total + item.total_price, 0);",
+          "};"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/orders", "used_by": ["AdminPedidos"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["order_items"],
+        "fields": ["unit_price", "quantity", "total_price"]
+      },
+      "db_artifacts": [],
+      "source_of_truth": "frontend",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar cálculos de preço"
+      },
+      "notes": "Cálculo local no frontend, validação no backend"
+    },
+    {
+      "rule_id": "BR-007",
+      "title": "Controle de Status de Pedidos",
+      "description": "Transições de status permitidas para pedidos",
+      "category": "workflow",
+      "layer": ["frontend", "backend", "database"],
+      "status": "implemented",
+      "severity": "low",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminPedidos.jsx", "symbol": "updateOrderStatus", "lines": "260-270"}
+        ],
+        "snippets": [
+          "const updateOrderStatus = async (orderId, newStatus) => {",
+          "  await api.put(`/orders/${orderId}`, { status: newStatus });",
+          "};"
+        ],
+        "endpoints": [
+          {"method": "PUT", "url": "/orders/{id}", "used_by": ["AdminPedidos"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["orders"],
+        "fields": ["status"]
+      },
+      "db_artifacts": [
+        {"type": "column", "name": "status", "definition": "enum('open','in_preparation','ready','served','closed','cancelled')"}
+      ],
+      "source_of_truth": "database",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar transições de status"
+      },
+      "notes": "Status controlados por enum no banco"
+    },
+    {
+      "rule_id": "BR-008",
+      "title": "Gestão de Mesas",
+      "description": "Controle de disponibilidade e reservas de mesas",
+      "category": "workflow",
+      "layer": ["frontend", "backend", "database"],
+      "status": "implemented",
+      "severity": "medium",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminMesas.jsx", "symbol": "gestão de status", "lines": "1-100"}
+        ],
+        "snippets": [],
+        "endpoints": [
+          {"method": "GET", "url": "/tables", "used_by": ["AdminMesas"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["tables"],
+        "fields": ["status", "capacity"]
+      },
+      "db_artifacts": [
+        {"type": "column", "name": "status", "definition": "enum('available','occupied','reserved')"}
+      ],
+      "source_of_truth": "database",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar mudanças de status de mesa"
+      },
+      "notes": "Status controlados por enum no banco"
+    },
+    {
+      "rule_id": "BR-009",
+      "title": "Validação de Clientes",
+      "description": "Regras para criação e edição de clientes",
+      "category": "validation",
+      "layer": ["frontend", "backend"],
+      "status": "implemented",
+      "severity": "low",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminPedidos.jsx", "symbol": "createCustomer", "lines": "280-290"}
+        ],
+        "snippets": [
+          "const createCustomer = async () => {",
+          "  const response = await api.post('/customers', newCustomer);",
+          "};"
+        ],
+        "endpoints": [
+          {"method": "POST", "url": "/customers", "used_by": ["AdminPedidos"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["customers"],
+        "fields": ["full_name", "email", "phone"]
+      },
+      "db_artifacts": [],
+      "source_of_truth": "backend",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar validação de clientes"
+      },
+      "notes": "Nome obrigatório, email e telefone opcionais"
+    },
+    {
+      "rule_id": "BR-010",
+      "title": "Controle de Produtos",
+      "description": "Gestão de produtos com categorias e preços",
+      "category": "workflow",
+      "layer": ["frontend", "backend", "database"],
+      "status": "implemented",
+      "severity": "low",
+      "evidence": {
+        "code_locations": [
+          {"path": "src/pages/AdminProdutos.jsx", "symbol": "gestão de produtos", "lines": "1-100"}
+        ],
+        "snippets": [],
+        "endpoints": [
+          {"method": "GET", "url": "/products", "used_by": ["AdminProdutos"]}
+        ]
+      },
+      "data_model": {
+        "entities": ["products"],
+        "fields": ["status", "category_id"]
+      },
+      "db_artifacts": [
+        {"type": "column", "name": "status", "definition": "enum('active','inactive')"}
+      ],
+      "source_of_truth": "database",
+      "tests": {
+        "files": [],
+        "coverage_hint": "Testar mudanças de status de produto"
+      },
+      "notes": "Status ativo/inativo controlado por enum"
+    }
+  ],
+  "crosswalk_analysis": {
+    "frontend_backend_alignment": "high",
+    "database_constraints": "medium",
+    "validation_coverage": "good",
+    "risk_areas": [
+      "Estoque não validado no frontend",
+      "Controle de roles inconsistente",
+      "Falta validação de preços negativos"
+    ]
+  },
+  "recommendations": {
+    "immediate": [
+      "Implementar validação de estoque no frontend",
+      "Reforçar controle de acesso por roles"
+    ],
+    "short_term": [
+      "Adicionar validação de preços",
+      "Implementar timeout de sessão"
+    ],
+    "long_term": [
+      "Sistema de auditoria completo",
+      "Validações avançadas de negócio"
+    ]
+  }
+}
+
