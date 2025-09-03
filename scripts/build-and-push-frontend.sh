@@ -17,7 +17,7 @@ TAG=${2:-$DEFAULT_TAG}
 # Construir nome completo da imagem
 FULL_IMAGE_NAME="${REGISTRY}/${IMAGE_NAME}:${TAG}"
 
-echo "🚀 Iniciando build e push da imagem Docker do Frontend..."
+echo "🚀 Iniciando build e push da imagem Docker do Frontend (Legacy)..."
 echo "📦 Registry: ${REGISTRY}"
 echo "🏷️  Tag: ${TAG}"
 echo "🖼️  Nome da imagem: ${FULL_IMAGE_NAME}"

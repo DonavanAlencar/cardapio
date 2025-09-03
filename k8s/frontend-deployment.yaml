@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cardapio-frontend
+  name: cardapio-front-new
   namespace: cardapio
   labels:
-    app: cardapio-frontend
+    app: cardapio-front-new
 spec:
   replicas: 2
   strategy:
@@ -15,23 +15,23 @@ spec:
   progressDeadlineSeconds: 600
   selector:
     matchLabels:
-      app: cardapio-frontend
+      app: cardapio-front-new
   template:
     metadata:
       labels:
-        app: cardapio-frontend
+        app: cardapio-front-new
     spec:
       containers:
-      - name: cardapio-frontend
-        image: donavanalencar/cardapio-frontend:1.11
+      - name: cardapio-front-new
+        image: donavanalencar/cardapio-front-new:1.11
         ports:
-        - containerPort: 3000
+        - containerPort: 80
         env:
-        - name: REACT_APP_API_BASE_URL
+        - name: VITE_API_BASE_URL
           valueFrom:
             configMapKeyRef:
-              name: frontend-api-config
-              key: REACT_APP_API_BASE_URL
+              name: front-new-api-config
+              key: VITE_API_BASE_URL
         resources:
           requests:
             memory: "64Mi"
@@ -41,16 +41,16 @@ spec:
             cpu: "200m"
         livenessProbe:
           httpGet:
-            path: /
-            port: 3000
+            path: /health
+            port: 80
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /
-            port: 3000
+            path: /health
+            port: 80
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 5

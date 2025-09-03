@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-backup
+  namespace: cardapio
+  labels:
+    app: mysql
+data:
+  # Backup do banco de dados em base64
+  # Este arquivo será montado no container MySQL para inicialização automática
+  dump.sql: |
+    # O conteúdo do dump.sql será inserido aqui automaticamente pelo script de deploy

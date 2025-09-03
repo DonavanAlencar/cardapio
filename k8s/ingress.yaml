@@ -21,12 +21,12 @@ spec:
     - host: food.546digitalservices.com
       http:
         paths:
-          # Frontend rodando no root
+          # Front New rodando no root
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: cardapio-frontend-service
+                name: cardapio-front-new-service
                 port:
                   number: 80
 
@@ -39,11 +39,11 @@ spec:
                 port:
                   number: 80
 
-          # Front-new rodando em /new
-          - path: /new
+          # Frontend antigo rodando em /old
+          - path: /old
             pathType: Prefix
             backend:
               service:
-                name: cardapio-front-new-service
+                name: cardapio-frontend-service
                 port:
                   number: 80
