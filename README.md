@@ -129,13 +129,16 @@ Para mais detalhes sobre o deploy, consulte [DEPLOY-FRONT-NEW.md](DEPLOY-FRONT-N
 - Diretório `scripts/old-scripts-20250812-015918/`
 
 **Scripts ativos mantidos:**
-- `deploy.sh` (script principal)
+- `deploy.sh` (script principal - **LEGADO**)
+- `scripts/deploy-complete-automated.sh` ✨ **PRINCIPAL - Deploy completo automatizado com todas as opções**
 - `scripts/deploy-front-new-complete.sh`
 - `scripts/deploy-front-new-k8s.sh`
 - `scripts/build-and-push-front-new.sh`
 - `scripts/mysql-backup.sh`
 - `scripts/mysql-restore.sh`
 - `scripts/prepare-mysql-backup.sh`
+
+**⚠️ Recomendação:** Use `scripts/deploy-complete-automated.sh` como script principal. O `deploy.sh` é mantido apenas para compatibilidade.
 
 ## 🚀 Implantação em Produção com Traefik e Let's Encrypt
 
@@ -350,5 +353,169 @@ kubectl cp kube-system/traefik-<pod-name>:/data/acme.json ./acme-backup.json
 ```
 
 ---
+
+## 🔄 Sistema MySQL Automatizado (Configuração de Produção)
+
+### Configuração Automatizada Implementada
+
+O sistema agora possui configuração totalmente automatizada do MySQL com backup automático:
+
+#### ✅ Componentes Configurados:
+
+1. **MySQL StatefulSet Automatizado** (`mysql-with-backup`)
+   - Backup automático no startup
+   - Volume persistente para dados
+   - Volume ConfigMap para backup (`/cardapio/backend/backup_db/`)
+   - Hook postStart para importação automática
+
+2. **Secrets e ConfigMaps**
+   - `mysql-pass-fixed`: Senhas do MySQL
+   - `mysql-backup-current`: Backup atual do banco
+   - `mysql-auto-init`: Script de inicialização automática
+
+3. **Backend Automatizado** (`cardapio-backend-fixed`)
+   - Configuração automática de conexão
+   - Variáveis de ambiente corretas
+   - Service discovery configurado
+
+#### 🚀 Deploy Automatizado Completo
+
+Para fazer deploy do zero com configuração automatizada:
+
+```bash
+# Deploy completo automatizado
+./scripts/deploy-complete-automated.sh donavanalencar 3.0
+
+# Deploy com correção de CSS
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --fix-css
+
+# Deploy apenas do frontend
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --frontend-only
+
+# Deploy apenas do backend
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --backend-only
+
+# Deploy apenas do MySQL
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --mysql-only
+
+# Backup do MySQL
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --mysql-backup
+
+# Restaurar MySQL
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --mysql-restore
+```
+
+#### 🎛️ Opções do Script
+
+**Parâmetros:**
+- `[registry-url]` - URL do registry Docker (padrão: `donavanalencar`)
+- `[tag]` - Tag da imagem (padrão: `3.0`)
+
+**Flags disponíveis:**
+- `--fix-css` - Corrige problemas de CSS no frontend antes do build
+- `--frontend-only` - Deploy apenas do frontend
+- `--backend-only` - Deploy apenas do backend
+- `--mysql-only` - Deploy apenas do MySQL
+- `--mysql-backup` - Faz backup do MySQL atual
+- `--mysql-restore` - Restaura MySQL do backup
+
+**Exemplos de uso:**
+```bash
+# Deploy completo com versão específica
+./scripts/deploy-complete-automated.sh donavanalencar 2.5
+
+# Deploy apenas frontend com correção de CSS
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --frontend-only --fix-css
+
+# Backup do banco atual
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --mysql-backup
+```
+
+#### 📋 Credenciais de Sistema
+
+**Usuários de Login:**
+- **Admin:** `admin@empresa.com` / `password`
+- **Garçom:** `garcom@empresa.com` / `password`
+
+**MySQL:**
+- **Root:** `root` / `newrootpassword`
+- **User:** `cardapio` / `cardapiopass`
+
+#### 🔧 Verificação do Sistema
+
+```bash
+# Verificar status dos pods
+kubectl get pods -n cardapio
+
+# Verificar banco de dados
+kubectl exec -n cardapio mysql-with-backup-0 -- mysql -u root -pnewrootpassword -e "SHOW DATABASES;"
+
+# Testar API
+curl -k https://food.546digitalservices.com/api/auth/test-db
+
+# Testar login
+curl -k -X POST https://food.546digitalservices.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@empresa.com","password":"password"}'
+```
+
+#### 🛠️ Configuração Técnica
+
+**Automação do Backup:**
+- O sistema verifica automaticamente se o banco possui tabelas
+- Se não houver tabelas, importa o backup automaticamente
+- Hook postStart garante importação mesmo após reinicializações
+- Volume ConfigMap mantém o backup sempre disponível
+
+**Fluxo de Inicialização:**
+1. MySQL sobe com volumes configurados
+2. PostStart hook aguarda MySQL estar pronto
+3. Verifica se existem tabelas no banco `cardapio`
+4. Se não existir, executa importação do dump.sql
+5. Sistema fica pronto para uso
+
+**Arquivos de Configuração:**
+- `/cardapio/backend/backup_db/dump.sql` - Backup principal
+- `/docker-entrypoint-initdb.d/init.sql` - Script de inicialização
+- Variáveis de ambiente configuradas automaticamente
+
+#### 🔄 Manutenção
+
+**Backup Manual:**
+```bash
+# Criar backup atual
+kubectl exec -n cardapio mysql-with-backup-0 -- mysqldump -u root -pnewrootpassword cardapio > backup_$(date +%Y%m%d).sql
+
+# Atualizar ConfigMap com novo backup
+kubectl create configmap mysql-backup-current -n cardapio --from-file=dump.sql=backup_$(date +%Y%m%d).sql -o yaml --dry-run=client | kubectl apply -f -
+```
+
+**Logs de Verificação:**
+```bash
+# Logs do MySQL (verificar importação)
+kubectl logs -n cardapio mysql-with-backup-0 --tail=100
+
+# Logs do backend (verificar conexão)
+kubectl logs -n cardapio -l app=cardapio-backend-fixed --tail=50
+```
+
+#### 🌐 URLs de Acesso
+
+- **Sistema Principal:** https://food.546digitalservices.com
+- **Front-new:** https://food.546digitalservices.com/new  
+- **API:** https://food.546digitalservices.com/api
+- **WebSocket:** wss://food.546digitalservices.com/socket.io
+
+#### ⚠️ Considerações de Produção
+
+- Backup automático garante integridade dos dados
+- Sistema tolera reinicializações sem perda de dados
+- Configuração de secrets isolada e segura
+- Volume persistente garante durabilidade
+- Logs detalhados para troubleshooting
+
+---
+
+**Última atualização:** Setembro 2025 - Sistema MySQL Automatizado Implementado
 
 **Nota:** Este README foi gerado automaticamente com base na estrutura do projeto e nos nomes dos arquivos/componentes. Para detalhes mais específicos, consulte a documentação interna ou o código-fonte de cada módulo.
