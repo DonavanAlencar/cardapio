@@ -418,6 +418,7 @@ Para fazer deploy do zero com configuração automatizada:
 - `--mysql-only` - Deploy apenas do MySQL
 - `--mysql-backup` - Faz backup do MySQL atual
 - `--mysql-restore` - Restaura MySQL do backup
+- `--mysql-resize=<TAMANHO>` - Redimensiona o PVC do MySQL (recriação controlada). Ex.: `--mysql-resize=20Gi`
 
 **Exemplos de uso:**
 ```bash
@@ -429,6 +430,9 @@ Para fazer deploy do zero com configuração automatizada:
 
 # Backup do banco atual
 ./scripts/deploy-complete-automated.sh donavanalencar 3.0 --mysql-backup
+
+# Redimensionar PVC do MySQL para 20Gi (com backup automático e recriação controlada)
+./scripts/deploy-complete-automated.sh donavanalencar 3.0 --mysql-resize=20Gi
 ```
 
 #### 📋 Credenciais de Sistema

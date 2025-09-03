@@ -23,6 +23,7 @@ BACKEND_ONLY=false
 MYSQL_ONLY=false
 MYSQL_BACKUP=false
 MYSQL_RESTORE=false
+MYSQL_RESIZE=""
 
 # Parse de argumentos
 for arg in "$@"; do
@@ -51,6 +52,10 @@ for arg in "$@"; do
             MYSQL_RESTORE=true
             shift
             ;;
+        --mysql-resize=*)
+            MYSQL_RESIZE="${arg#*=}"
+            shift
+            ;;
     esac
 done
 
@@ -64,6 +69,9 @@ echo "🖼️  Backend: ${BACKEND_FULL_IMAGE_NAME}"
 echo "🖼️  Frontend: ${FRONT_NEW_FULL_IMAGE_NAME}"
 echo "🔧 Fix CSS: ${FIX_CSS}"
 echo "🎯 Modo: $([ "$FRONTEND_ONLY" = true ] && echo "Frontend apenas" || [ "$BACKEND_ONLY" = true ] && echo "Backend apenas" || [ "$MYSQL_ONLY" = true ] && echo "MySQL apenas" || [ "$MYSQL_BACKUP" = true ] && echo "MySQL backup" || [ "$MYSQL_RESTORE" = true ] && echo "MySQL restore" || echo "Completo")"
+if [ -n "$MYSQL_RESIZE" ]; then
+    echo "🗄️  Resize de PVC solicitado: ${MYSQL_RESIZE}"
+fi
 echo ""
 
 # Verificar se o Docker está logado
@@ -207,6 +215,19 @@ if [ "$MYSQL_RESTORE" = true ]; then
     else
         echo "   ⚠️  Script mysql-restore.sh não encontrado"
     fi
+    exit 0
+fi
+
+# Resize de PVC do MySQL (recriação controlada)
+if [ -n "$MYSQL_RESIZE" ]; then
+    echo "🗄️  Iniciando resize do PVC do MySQL para ${MYSQL_RESIZE}"
+    if [ -f "scripts/mysql-resize-pvc.sh" ]; then
+        bash scripts/mysql-resize-pvc.sh "$MYSQL_RESIZE"
+    else
+        echo "❌ scripts/mysql-resize-pvc.sh não encontrado"
+        exit 1
+    fi
+    echo "✅ Resize finalizado"
     exit 0
 fi
 
