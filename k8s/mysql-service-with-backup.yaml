@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-with-backup
+  namespace: cardapio
+  labels:
+    app: mysql-with-backup
+spec:
+  ports:
+    - name: mysql
+      protocol: TCP
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: mysql-with-backup
+  type: ClusterIP
+  sessionAffinity: None
+  internalTrafficPolicy: Cluster

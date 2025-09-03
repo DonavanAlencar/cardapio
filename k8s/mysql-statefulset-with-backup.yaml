@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-with-backup
+  namespace: cardapio
+  labels:
+    app: mysql-with-backup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-with-backup
+  serviceName: mysql-with-backup
+  template:
+    metadata:
+      labels:
+        app: mysql-with-backup
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - name: mysql
+              containerPort: 3306
+              protocol: TCP
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass-fixed
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: "cardapio"
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass-fixed
+                  key: mysql-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass-fixed
+                  key: mysql-password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+            - name: mysql-init-script
+              mountPath: /docker-entrypoint-initdb.d
+            - name: mysql-backup
+              mountPath: /cardapio/backend/backup_db
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - mysql
+                - -h
+                - localhost
+                - -u
+                - root
+                - -pnewrootpassword
+                - -e
+                - "SELECT 1"
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 3
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - |
+                    echo "Aguardando MySQL estar pronto..."
+                    until mysqladmin ping -h localhost --silent; do
+                      echo "MySQL ainda não está pronto, aguardando..."
+                      sleep 2
+                    done
+                    echo "MySQL está pronto, verificando banco..."
+                    sleep 3
+                    TABLE_COUNT=$(mysql -h localhost -u root -pnewrootpassword -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='cardapio';" 2>/dev/null || echo "0")
+                    echo "Tabelas encontradas: $TABLE_COUNT"
+                    if [ "$TABLE_COUNT" -eq "0" ]; then
+                      echo "Banco vazio, importando backup..."
+                      mysql -h localhost -u root -pnewrootpassword cardapio < /cardapio/backend/backup_db/dump.sql
+                      echo "Backup importado com sucesso"
+                    else
+                      echo "Banco já possui dados, pulando importação"
+                    fi
+      volumes:
+        - name: mysql-init-script
+          configMap:
+            name: mysql-auto-init
+        - name: mysql-backup
+          configMap:
+            name: mysql-backup-current
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: mysql-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        volumeMode: Filesystem
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
