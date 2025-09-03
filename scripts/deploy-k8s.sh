@@ -28,7 +28,7 @@ echo "🖼️  Frontend: ${FRONTEND_FULL_IMAGE_NAME}"
 # Atualizar as imagens nos deployments
 echo "📝 Atualizando imagens nos deployments..."
 sed -i "s|image: .*cardapio-backend.*|image: ${BACKEND_FULL_IMAGE_NAME}|g" k8s/deployment.yaml
-sed -i "s|image: .*cardapio-front-new.*|image: ${FRONTEND_FULL_IMAGE_NAME}|g" k8s/frontend-deployment.yaml
+sed -i "s|image: .*cardapio-front-new.*|image: ${FRONTEND_FULL_IMAGE_NAME}|g" k8s/front-new-deployment.yaml
 
 # Aplicar os manifestos Kubernetes
 echo "🔧 Aplicando manifestos Kubernetes..."
@@ -48,17 +48,18 @@ kubectl apply -f k8s/mysql-service.yaml
 echo "⏳ Aguardando MySQL estar pronto..."
 kubectl wait --for=condition=ready pod/mysql-0 -n cardapio --timeout=300s
 
-# Aplicar ConfigMap e Secret
+# Aplicar ConfigMaps e Secrets
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/front-new-configmap.yaml
 
 # Aplicar Deployments
 kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/frontend-deployment.yaml
+kubectl apply -f k8s/front-new-deployment.yaml
 
 # Aplicar Services
 kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/frontend-service.yaml
+kubectl apply -f k8s/front-new-service.yaml
 
 # Aplicar Ingress
 kubectl apply -f k8s/ingress.yaml
@@ -90,4 +91,4 @@ echo ""
 echo "📋 Para acessar os serviços:"
 echo "   MySQL: kubectl port-forward service/mysql 3306:3306 -n cardapio"
 echo "   API: kubectl port-forward service/cardapio-backend-service 4000:80 -n cardapio"
-echo "   Front New: kubectl port-forward service/cardapio-front-new-service 5173:80 -n cardapio" 
+echo "   Front New: kubectl port-forward service/cardapio-front-new-service 80:80 -n cardapio" 

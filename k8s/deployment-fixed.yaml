@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cardapio-backend
+  name: cardapio-backend-fixed
   namespace: cardapio
   labels:
-    app: cardapio-backend
+    app: cardapio-backend-fixed
 spec:
   replicas: 3
   strategy:
@@ -12,14 +12,14 @@ spec:
     rollingUpdate:
       maxUnavailable: 1
       maxSurge: 1
-  progressDeadlineSeconds: 600  # 10 minutos
+  progressDeadlineSeconds: 600
   selector:
     matchLabels:
-      app: cardapio-backend
+      app: cardapio-backend-fixed
   template:
     metadata:
       labels:
-        app: cardapio-backend
+        app: cardapio-backend-fixed
     spec:
       containers:
       - name: cardapio-backend
@@ -30,37 +30,37 @@ spec:
         - name: NODE_ENV
           valueFrom:
             configMapKeyRef:
-              name: cardapio-backend-config
+              name: cardapio-backend-config-fixed
               key: NODE_ENV
         - name: PORT
           valueFrom:
             configMapKeyRef:
-              name: cardapio-backend-config
+              name: cardapio-backend-config-fixed
               key: PORT
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
-              name: cardapio-backend-config
+              name: cardapio-backend-config-fixed
               key: DB_HOST
         - name: DB_NAME
           valueFrom:
             configMapKeyRef:
-              name: cardapio-backend-config
+              name: cardapio-backend-config-fixed
               key: DB_NAME
         - name: DB_USER
           valueFrom:
             secretKeyRef:
-              name: cardapio-db-secret
-              key: DB_USER
+              name: mysql-pass-fixed
+              key: mysql-user
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-pass
-              key: mysql-root-password
+              name: mysql-pass-fixed
+              key: mysql-password
         - name: JWT_SECRET
           valueFrom:
             configMapKeyRef:
-              name: cardapio-backend-config
+              name: cardapio-backend-config-fixed
               key: JWT_SECRET
         resources:
           requests:
@@ -93,4 +93,4 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 30
-      restartPolicy: Always 
+      restartPolicy: Always

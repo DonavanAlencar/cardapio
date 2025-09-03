@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mysql
+  name: mysql-fixed
   namespace: cardapio
   labels:
-    app: mysql
+    app: mysql-fixed
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql
-  serviceName: mysql
+      app: mysql-fixed
+  serviceName: mysql-fixed
   template:
     metadata:
       labels:
-        app: mysql
+        app: mysql-fixed
     spec:
       containers:
         - name: mysql
@@ -27,19 +27,19 @@ spec:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql-pass
+                  name: mysql-pass-fixed
                   key: mysql-root-password
             - name: MYSQL_DATABASE
               value: "cardapio"
             - name: MYSQL_USER
               valueFrom:
                 secretKeyRef:
-                  name: mysql-pass
+                  name: mysql-pass-fixed
                   key: mysql-user
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql-pass
+                  name: mysql-pass-fixed
                   key: mysql-password
           resources:
             requests:
@@ -94,7 +94,7 @@ spec:
       volumes:
         - name: mysql-init
           configMap:
-            name: mysql-init
+            name: mysql-init-fixed
         - name: mysql-backup
           configMap:
             name: mysql-backup

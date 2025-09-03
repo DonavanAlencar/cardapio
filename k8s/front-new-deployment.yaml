@@ -23,9 +23,9 @@ spec:
     spec:
       containers:
       - name: cardapio-front-new
-        image: donavanalencar/cardapio-front-new:1.0
+        image: donavanalencar/cardapio-front-new:2.0
         ports:
-        - containerPort: 5173
+        - containerPort: 80
         env:
         - name: VITE_API_BASE_URL
           valueFrom:
@@ -42,7 +42,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 5173
+            port: 80
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
@@ -50,7 +50,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 5173
+            port: 80
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 5
