@@ -89,6 +89,54 @@ O projeto inclui uma nova versão do frontend (`front_new`) desenvolvida com Vit
 
 Para mais detalhes sobre o deploy, consulte [DEPLOY-FRONT-NEW.md](DEPLOY-FRONT-NEW.md).
 
+## 🧹 Limpeza do Projeto (Atualizado)
+
+**Arquivos removidos para otimização:**
+
+### Scripts de teste removidos:
+- `test-apis.js`
+- `test-dashboard-dynamic.js` 
+- `test-login-system.js`
+- `test-reservations.js`
+
+### Scripts antigos de deploy removidos:
+- `cleanup-old-scripts.sh`
+- `scripts/deploy-k8s.sh`
+- `scripts/build-frontend.sh`
+- `scripts/build-and-push.sh`
+- `scripts/build-and-push-frontend.sh`
+- `scripts/setup-registry.sh`
+- `scripts/test-local.sh`
+- `scripts/debug.sh`
+- `scripts/restart.sh`
+- `scripts/rollback.sh`
+- `scripts/cleanup.sh`
+
+### Arquivos Kubernetes obsoletos removidos:
+- `k8s/frontend-deployment.yaml`
+- `k8s/frontend-service.yaml`
+- `k8s/frontend-configmap.yaml`
+- `k8s/ingress_old.yaml`
+- `k8s/kustomization.yaml`
+- `k8s/front-new-kustomization.yaml`
+- Arquivos com sufixo `-fixed` (versões duplicadas)
+- Configurações antigas do Traefik
+
+### Outros arquivos removidos:
+- `docker-compose.example.yml`
+- `package-lock.json` (vazio)
+- `k8s/create-basic-tables.sql`
+- Diretório `scripts/old-scripts-20250812-015918/`
+
+**Scripts ativos mantidos:**
+- `deploy.sh` (script principal)
+- `scripts/deploy-front-new-complete.sh`
+- `scripts/deploy-front-new-k8s.sh`
+- `scripts/build-and-push-front-new.sh`
+- `scripts/mysql-backup.sh`
+- `scripts/mysql-restore.sh`
+- `scripts/prepare-mysql-backup.sh`
+
 ## 🚀 Implantação em Produção com Traefik e Let's Encrypt
 
 ### Pré-requisitos
