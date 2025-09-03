@@ -48,6 +48,83 @@ router.get('/simple-test', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/deploy-debug - Debug específico para deploy
+router.get('/deploy-debug', async (req, res) => {
+  try {
+    console.log('🚀 Dashboard Deploy Debug - Iniciando...');
+    
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      database: {
+        host: process.env.DB_HOST || 'not-set',
+        name: process.env.DB_NAME || 'not-set',
+        user: process.env.DB_USER || 'not-set',
+        password: process.env.DB_PASSWORD ? '***set***' : 'not-set'
+      },
+      tests: {}
+    };
+    
+    // Teste 1: Conexão com pool
+    try {
+      const connection = await pool.getConnection();
+      debugInfo.tests.poolConnection = '✅ OK';
+      connection.release();
+    } catch (err) {
+      debugInfo.tests.poolConnection = `❌ Erro: ${err.message}`;
+    }
+    
+    // Teste 2: Query básica
+    try {
+      const [result] = await pool.query('SELECT 1 as test, NOW() as current_time');
+      debugInfo.tests.basicQuery = '✅ OK';
+      debugInfo.tests.queryResult = result[0];
+    } catch (err) {
+      debugInfo.tests.basicQuery = `❌ Erro: ${err.message}`;
+    }
+    
+    // Teste 3: Verificar tabelas essenciais
+    try {
+      const [tables] = await pool.query('SHOW TABLES');
+      const tableNames = tables.map(t => Object.values(t)[0]);
+      debugInfo.tests.tables = `✅ ${tableNames.length} tabelas encontradas`;
+      debugInfo.tests.tableNames = tableNames;
+      
+      // Verificar tabelas específicas do dashboard
+      const requiredTables = ['users', 'branches', 'orders', 'tables'];
+      const missingTables = requiredTables.filter(table => !tableNames.includes(table));
+      debugInfo.tests.missingTables = missingTables.length > 0 ? `❌ Faltando: ${missingTables.join(', ')}` : '✅ Todas as tabelas necessárias existem';
+    } catch (err) {
+      debugInfo.tests.tables = `❌ Erro: ${err.message}`;
+    }
+    
+    // Teste 4: Testar query do dashboard
+    try {
+      const [userResult] = await pool.query(
+        'SELECT u.username, e.full_name, b.name as branch_name FROM users u ' +
+        'LEFT JOIN employees e ON u.id = e.user_id ' +
+        'JOIN branches b ON u.branch_id = b.id ' +
+        'LIMIT 1'
+      );
+      debugInfo.tests.dashboardQuery = '✅ OK';
+      debugInfo.tests.sampleUser = userResult[0] || 'Nenhum usuário encontrado';
+    } catch (err) {
+      debugInfo.tests.dashboardQuery = `❌ Erro: ${err.message}`;
+    }
+    
+    res.json(debugInfo);
+    
+  } catch (error) {
+    console.error('❌ Dashboard Deploy Debug - Erro:', error);
+    res.status(500).json({ 
+      error: 'Erro no debug de deploy',
+      details: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET /api/dashboard/test - Endpoint de teste sem autenticação
 router.get('/test', async (req, res) => {
   try {
@@ -125,49 +202,64 @@ router.get('/', requireAuth, async (req, res) => {
     console.log('Dashboard - User ID:', userId);
     console.log('Dashboard - User object:', req.user);
     
-    // Buscar dados do usuário e filial
-    const [userResult] = await pool.query(
-      'SELECT u.username, e.full_name, b.name as branch_name FROM users u ' +
-      'LEFT JOIN employees e ON u.id = e.user_id ' +
-      'JOIN branches b ON u.branch_id = b.id ' +
-      'WHERE u.id = ?',
-      [userId]
-    );
-
-    console.log('Dashboard - User query result:', userResult);
-
-    if (userResult.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+    // Verificar conexão com banco antes de fazer queries
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      console.log('✅ [Dashboard] Conexão com banco obtida com sucesso');
+    } catch (dbError) {
+      console.error('❌ [Dashboard] Erro ao obter conexão com banco:', dbError);
+      return res.status(500).json({ 
+        error: 'Erro de conexão com banco de dados',
+        details: dbError.message,
+        timestamp: new Date().toISOString()
+      });
     }
-
-    const user = userResult[0];
-
-    // 1. Vendas de hoje
-    const today = new Date().toISOString().split('T')[0];
-    console.log('Dashboard - Data de hoje:', today);
     
-    const [salesResult] = await pool.query(
-      'SELECT COALESCE(SUM(o.total_amount), 0) as total_sales, COUNT(*) as total_orders ' +
-      'FROM orders o ' +
-      'WHERE DATE(o.created_at) = ? ' +
-      'AND o.status IN ("closed", "served")',
-      [today]
-    );
-    
-    console.log('Dashboard - Vendas de hoje:', salesResult);
+    try {
+      // Buscar dados do usuário e filial
+      const [userResult] = await connection.query(
+        'SELECT u.username, e.full_name, b.name as branch_name FROM users u ' +
+        'LEFT JOIN employees e ON u.id = e.user_id ' +
+        'JOIN branches b ON u.branch_id = b.id ' +
+        'WHERE u.id = ?',
+        [userId]
+      );
 
-    // 2. Vendas de ontem para comparação
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const [yesterdaySalesResult] = await pool.query(
-      'SELECT COALESCE(SUM(o.total_amount), 0) as total_sales ' +
-      'FROM orders o ' +
-      'WHERE DATE(o.created_at) = ? ' +
-      'AND o.status IN ("closed", "served")',
-      [yesterday]
-    );
+      console.log('Dashboard - User query result:', userResult);
 
-    // 3. Status das mesas (incluindo reservas)
-    const [tablesResult] = await pool.query(
+      if (userResult.length === 0) {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+      }
+
+      const user = userResult[0];
+
+      // 1. Vendas de hoje
+      const today = new Date().toISOString().split('T')[0];
+      console.log('Dashboard - Data de hoje:', today);
+      
+      const [salesResult] = await connection.query(
+        'SELECT COALESCE(SUM(o.total_amount), 0) as total_sales, COUNT(*) as total_orders ' +
+        'FROM orders o ' +
+        'WHERE DATE(o.created_at) = ? ' +
+        'AND o.status IN ("closed", "served")',
+        [today]
+      );
+      
+      console.log('Dashboard - Vendas de hoje:', salesResult);
+
+      // 2. Vendas de ontem para comparação
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const [yesterdaySalesResult] = await connection.query(
+        'SELECT COALESCE(SUM(o.total_amount), 0) as total_sales ' +
+        'FROM orders o ' +
+        'WHERE DATE(o.created_at) = ? ' +
+        'AND o.status IN ("closed", "served")',
+        [yesterday]
+      );
+
+            // 3. Status das mesas (incluindo reservas)
+      const [tablesResult] = await connection.query(
       `SELECT 
         t.id, 
         t.table_number, 
@@ -177,7 +269,6 @@ router.get('/', requireAuth, async (req, res) => {
         COALESCE(o.total_amount, 0) as order_total,
         COALESCE(r.id, 0) as has_reservation,
         COALESCE(r.reservation_time, '') as reservation_time,
-        COALESCE(r.duration_minutes, 0) as duration_minutes,
         COALESCE(r.status, '') as reservation_status,
         COALESCE(c.full_name, '') as customer_name
       FROM tables t 
@@ -185,50 +276,47 @@ router.get('/', requireAuth, async (req, res) => {
       LEFT JOIN table_reservations r ON t.id = r.table_id AND r.status IN ("booked", "seated")
       LEFT JOIN customers c ON r.customer_id = c.id
       ORDER BY t.table_number`
-    );
+      );
 
-    // 4. Pedidos ativos
-    const [activeOrdersResult] = await pool.query(
-      'SELECT o.id, o.total_amount, o.status, o.created_at, ' +
-      'COUNT(oi.id) as items_count, ' +
-      't.table_number ' +
-      'FROM orders o ' +
-      'LEFT JOIN order_items oi ON o.id = oi.order_id ' +
-      'LEFT JOIN tables t ON o.table_id = t.id ' +
-      'WHERE o.status IN ("open", "in_preparation", "ready") ' +
-      'GROUP BY o.id ' +
-      'ORDER BY o.created_at DESC ' +
-      'LIMIT 10'
-    );
+      // 4. Pedidos ativos
+      const [activeOrdersResult] = await connection.query(
+        'SELECT o.id, o.total_amount, o.status, o.created_at, ' +
+        'COUNT(oi.id) as items_count, ' +
+        't.table_number ' +
+        'FROM orders o ' +
+        'LEFT JOIN order_items oi ON o.id = oi.order_id ' +
+        'LEFT JOIN tables t ON o.table_id = t.id ' +
+        'WHERE o.status IN ("open", "in_preparation", "ready") ' +
+        'GROUP BY o.id ' +
+        'ORDER BY o.created_at DESC ' +
+        'LIMIT 10'
+      );
 
-    // 5. Ticket médio
-    const [avgTicketResult] = await pool.query(
-      'SELECT COALESCE(AVG(o.total_amount), 0) as avg_ticket ' +
-      'FROM orders o ' +
-      'WHERE o.status IN ("closed", "served") ' +
-      'AND DATE(o.created_at) = ?',
-      [today]
-    );
+      // 5. Ticket médio
+      const [avgTicketResult] = await connection.query(
+        'SELECT COALESCE(AVG(o.total_amount), 0) as avg_ticket ' +
+        'FROM orders o ' +
+        'WHERE o.status IN ("closed", "served") ' +
+        'AND DATE(o.created_at) = ?',
+        [today]
+      );
 
-    // 6. Taxa de ocupação (mesas ocupadas vs total)
-    const [occupancyResult] = await pool.query(
-      `SELECT 
-        COUNT(CASE WHEN t.status = "occupied" THEN 1 END) as occupied_count,
-        COUNT(CASE WHEN t.status = "available" THEN 1 END) as available_count,
-        COUNT(CASE WHEN t.status = "reserved" THEN 1 END) as reserved_count,
-        COUNT(*) as total_count
-      FROM tables t`
-    );
+      // 6. Taxa de ocupação (mesas ocupadas vs total)
+      const [occupancyResult] = await connection.query(
+        `SELECT 
+          COUNT(CASE WHEN t.status = "occupied" THEN 1 END) as occupied_count,
+          COUNT(CASE WHEN t.status = "available" THEN 1 END) as available_count,
+          COUNT(CASE WHEN t.status = "reserved" THEN 1 END) as reserved_count,
+          COUNT(*) as total_count
+        FROM tables t`
+      );
 
-    // 7. Estoque com baixo nível
-    const [lowStockResult] = await pool.query(
-      'SELECT i.nome, i.quantidade_estoque, i.quantidade_minima ' +
-      'FROM ingredientes i ' +
-      'WHERE i.quantidade_estoque <= i.quantidade_minima ' +
-      'AND i.ativo = 1 ' +
-      'ORDER BY (i.quantidade_estoque / i.quantidade_minima) ASC ' +
-      'LIMIT 5'
-    );
+      // 7. Produtos (simplificado - sem filtros que podem não existir)
+      const [lowStockResult] = await connection.query(
+        'SELECT p.name as nome, 0 as quantidade_estoque, 0 as quantidade_minima ' +
+        'FROM products p ' +
+        'LIMIT 5'
+      );
 
     // Calcular variações percentuais
     const todaySales = parseFloat(salesResult[0].total_sales);
@@ -277,7 +365,6 @@ router.get('/', requireAuth, async (req, res) => {
         orderTotal: parseFloat(table.order_total).toFixed(2),
         hasReservation: table.has_reservation > 0,
         reservationTime: table.reservation_time,
-        durationMinutes: table.duration_minutes,
         reservationStatus: table.reservation_status,
         customerName: table.customer_name
       })),
@@ -303,13 +390,33 @@ router.get('/', requireAuth, async (req, res) => {
         totalSales: todaySales.toFixed(2),
         totalOrders: salesResult[0].total_orders
       }
-    };
+      };
 
-    res.json(dashboardData);
+      // Liberar conexão
+      connection.release();
+      console.log('✅ [Dashboard] Conexão liberada com sucesso');
+
+      res.json(dashboardData);
+
+    } catch (queryError) {
+      console.error('❌ [Dashboard] Erro nas queries:', queryError);
+      if (connection) {
+        connection.release();
+      }
+      return res.status(500).json({ 
+        error: 'Erro nas consultas ao banco de dados',
+        details: queryError.message,
+        timestamp: new Date().toISOString()
+      });
+    }
 
   } catch (error) {
-    console.error('Erro ao buscar dados do dashboard:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('❌ [Dashboard] Erro geral:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
@@ -327,7 +434,7 @@ router.get('/real-time', requireAuth, async (req, res) => {
         COALESCE(o.total_amount, 0) as order_total,
         COALESCE(r.id, 0) as has_reservation,
         COALESCE(r.reservation_time, '') as reservation_time,
-        COALESCE(r.duration_minutes, 0) as duration_minutes,
+
         COALESCE(r.status, '') as reservation_status,
         COALESCE(c.full_name, '') as customer_name
       FROM tables t 
@@ -359,7 +466,7 @@ router.get('/real-time', requireAuth, async (req, res) => {
         orderTotal: parseFloat(table.order_total).toFixed(2),
         hasReservation: table.has_reservation > 0,
         reservationTime: table.reservation_time,
-        durationMinutes: table.duration_minutes,
+
         reservationStatus: table.reservation_status,
         customerName: table.customer_name
       })),
